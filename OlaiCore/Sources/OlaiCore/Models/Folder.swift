@@ -70,6 +70,17 @@ public extension Folder {
         return sortedChildren.contains { $0.contains(candidate) }
     }
 
+    /// Whether this folder may become a child of `destination` (nil meaning the top
+    /// level). A folder cannot move into itself or into one of its own descendants --
+    /// that would cut the branch loose from the tree -- and moving it where it already
+    /// sits is not a move at all.
+    func canBeMoved(to destination: Folder?) -> Bool {
+        guard let destination else { return parent != nil }
+        if destination.id == id { return false }
+        if contains(destination) { return false }
+        return parent?.id != destination.id
+    }
+
     static func displayOrder(_ lhs: Folder, _ rhs: Folder) -> Bool {
         if lhs.sortOrder != rhs.sortOrder { return lhs.sortOrder < rhs.sortOrder }
         return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending

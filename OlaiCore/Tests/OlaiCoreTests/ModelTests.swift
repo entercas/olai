@@ -64,6 +64,35 @@ struct ModelTests {
         #expect(!child.contains(root))
     }
 
+    @Test func aFolderCannotMoveIntoItsOwnSubtree() throws {
+        let context = try makeContext()
+        let root = Folder(name: "Work")
+        let child = Folder(name: "Projects", parent: root)
+        let grandchild = Folder(name: "Olai", parent: child)
+        let other = Folder(name: "Personal")
+        for folder in [root, child, grandchild, other] { context.insert(folder) }
+        try context.save()
+
+        #expect(!root.canBeMoved(to: root))
+        #expect(!root.canBeMoved(to: child))
+        #expect(!root.canBeMoved(to: grandchild))
+        #expect(root.canBeMoved(to: other))
+    }
+
+    @Test func movingWhereItAlreadySitsIsNotAMove() throws {
+        let context = try makeContext()
+        let root = Folder(name: "Work")
+        let child = Folder(name: "Projects", parent: root)
+        let sibling = Folder(name: "Archive", parent: root)
+        for folder in [root, child, sibling] { context.insert(folder) }
+        try context.save()
+
+        #expect(!child.canBeMoved(to: root))
+        #expect(child.canBeMoved(to: sibling))
+        #expect(child.canBeMoved(to: nil))
+        #expect(!root.canBeMoved(to: nil))
+    }
+
     @Test func pinnedPagesSortFirst() throws {
         let pinned = Page(title: "Zebra", isPinned: true)
         let plain = Page(title: "Alpha")

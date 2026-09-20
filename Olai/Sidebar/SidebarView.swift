@@ -8,6 +8,7 @@ struct SidebarView: View {
     @Binding var selection: SidebarSelection?
     let onNewFolder: () -> Void
     let onNewPage: () -> Void
+    let onMove: (DraggedItem, Folder?) -> Bool
     let onRename: (TreeItem, Bool) -> Void
     let onDelete: (TreeItem) -> Void
 
@@ -29,6 +30,7 @@ struct SidebarView: View {
                     folder: folder,
                     allFolders: allFolders,
                     selection: $selection,
+                    onMove: onMove,
                     onRename: onRename,
                     onDelete: onDelete
                 )
@@ -48,13 +50,21 @@ struct SidebarView: View {
         .safeAreaInset(edge: .top, spacing: 0) {
             Divider()
         }
-        #if os(iOS)
-        .navigationTitle("Olai")
         .toolbar {
+            // macOS: beside the sidebar's collapse button. iOS: the sidebar's own
+            // navigation bar, which is where a collapsed split view shows actions.
+            #if os(macOS)
             ToolbarItemGroup(placement: .primaryAction) {
                 NewItemButtons(newFolder: onNewFolder, newPage: onNewPage)
             }
+            #else
+            ToolbarItemGroup(placement: .primaryAction) {
+                NewItemButtons(newFolder: onNewFolder, newPage: onNewPage)
+            }
+            #endif
         }
+        #if os(iOS)
+        .navigationTitle("Olai")
         #endif
     }
 }
@@ -71,22 +81,26 @@ private struct FolderDisclosure: View {
     @Bindable var folder: Folder
     let allFolders: [Folder]
     @Binding var selection: SidebarSelection?
+    let onMove: (DraggedItem, Folder?) -> Bool
     let onRename: (TreeItem, Bool) -> Void
     let onDelete: (TreeItem) -> Void
 
     @AppStorage private var isExpanded: Bool
+    @State private var isDropTarget = false
     @Environment(\.modelContext) private var context
 
     init(
         folder: Folder,
         allFolders: [Folder],
         selection: Binding<SidebarSelection?>,
+        onMove: @escaping (DraggedItem, Folder?) -> Bool,
         onRename: @escaping (TreeItem, Bool) -> Void,
         onDelete: @escaping (TreeItem) -> Void
     ) {
         _folder = Bindable(folder)
         self.allFolders = allFolders
         _selection = selection
+        self.onMove = onMove
         self.onRename = onRename
         self.onDelete = onDelete
         _isExpanded = AppStorage(wrappedValue: false, SidebarExpansion.key(for: folder.id))
@@ -99,6 +113,7 @@ private struct FolderDisclosure: View {
                     folder: child,
                     allFolders: allFolders,
                     selection: $selection,
+                    onMove: onMove,
                     onRename: onRename,
                     onDelete: onDelete
                 )
@@ -115,7 +130,19 @@ private struct FolderDisclosure: View {
                 Spacer(minLength: 2)
                 addMenu
             }
+            .contentShape(.rect)
+            .background(
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(.tint.opacity(isDropTarget ? 0.25 : 0))
+                    .padding(.vertical, -2)
+            )
             .contextMenu { menu }
+            .draggable(DraggedItem(kind: .folder, id: folder.id))
+            .dropDestination(for: DraggedItem.self) { items, _ in
+                // A drop that lands on the folder it came from, or that would put a
+                // folder inside its own subtree, is refused by onMove.
+                items.reduce(false) { done, item in onMove(item, folder) || done }
+            } isTargeted: { isDropTarget = $0 }
         }
         .tag(SidebarSelection.folder(folder.id))
     }
@@ -185,6 +212,7 @@ private struct PageRow: View {
             Image(systemName: page.isPinned ? "pin.fill" : "doc.text")
         }
         .tag(SidebarSelection.page(page.id))
+        .draggable(DraggedItem(kind: .page, id: page.id))
         .contextMenu {
             Button("Rename…") { onRename(.page(page), false) }
             MoveToMenu(allFolders: allFolders) { destination in

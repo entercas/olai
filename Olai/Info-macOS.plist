@@ -28,5 +28,18 @@
 	     an inset panel with a drop shadow. Remove this key to take the new look. -->
 	<key>UIDesignRequiresCompatibility</key>
 	<true/>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.entercas.olai.tree-item</string>
+			<key>UTTypeDescription</key>
+			<string>Olai Item</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

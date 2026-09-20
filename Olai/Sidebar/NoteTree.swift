@@ -66,10 +66,7 @@ enum NoteTree {
     }
 
     static func canMove(_ folder: Folder, to destination: Folder?) -> Bool {
-        guard let destination else { return folder.parent != nil }
-        if destination.id == folder.id { return false }
-        if folder.contains(destination) { return false }
-        return folder.parent?.id != destination.id
+        folder.canBeMoved(to: destination)
     }
 
     // MARK: Delete

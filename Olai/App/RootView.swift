@@ -30,6 +30,7 @@ struct RootView: View {
                 selection: $selection,
                 onNewFolder: newFolder,
                 onNewPage: newPage,
+                onMove: move,
                 onRename: beginRename,
                 onDelete: { deleteTarget = $0 }
             )
@@ -44,13 +45,6 @@ struct RootView: View {
         // The window's own title, so it spans the whole title bar rather than belonging
         // to the detail pane.
         .navigationTitle("Olai")
-        #if os(macOS)
-        .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                NewItemButtons(newFolder: newFolder, newPage: newPage)
-            }
-        }
-        #endif
         .alert("Rename", isPresented: renameIsPresented) {
             TextField("Name", text: $renameText)
             Button("Cancel", role: .cancel) { renameTarget = nil }
@@ -101,6 +95,31 @@ struct RootView: View {
             SidebarExpansion.setExpanded(true, for: parent.id)
         }
         beginRename(.folder(folder), startingEmpty: true)
+    }
+
+    /// Applies a drag: moves the dragged folder or page into `destination`. Returns
+    /// false for a move that would be a no-op or would put a folder inside itself.
+    private func move(_ item: DraggedItem, into destination: Folder?) -> Bool {
+        switch item.kind {
+        case .folder:
+            guard
+                let folder = allFolders.first(where: { $0.id == item.id }),
+                NoteTree.canMove(folder, to: destination)
+            else { return false }
+            NoteTree.move(folder, to: destination)
+
+        case .page:
+            guard
+                let page = allPages.first(where: { $0.id == item.id }),
+                page.folder?.id != destination?.id
+            else { return false }
+            NoteTree.move(page, to: destination)
+        }
+
+        if let destination {
+            SidebarExpansion.setExpanded(true, for: destination.id)
+        }
+        return true
     }
 
     // MARK: Renaming and deleting
@@ -221,17 +240,11 @@ struct NewItemButtons: View {
     var body: some View {
         Button(action: newFolder) {
             Label("New Folder", systemImage: "folder.badge.plus")
-            #if os(macOS)
-                .labelStyle(.titleAndIcon)
-            #endif
         }
         .help("New folder")
 
         Button(action: newPage) {
             Label("New Page", systemImage: "square.and.pencil")
-            #if os(macOS)
-                .labelStyle(.titleAndIcon)
-            #endif
         }
         .help("New page")
     }

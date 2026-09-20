@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		27D230B2756FEE4915F2EA15 /* OlaiCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3DF7DDD6CB4ADD58C6D03734 /* OlaiCore */; };
+		3649C9D2874EBC723419974C /* DraggedItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2AE67FA1FA45839EE0FF71B /* DraggedItem.swift */; };
 		455F465DA9DDEB684153DE0F /* OlaiModelContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC45749CCA0B22FFD810C16B /* OlaiModelContainer.swift */; };
 		507EA9CE2841AD5187B1AD07 /* OlaiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F94C1D7CE0859841ACE0F22 /* OlaiApp.swift */; };
 		5E2C2BAF949E3D4D54D5FFAA /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD069D6A33E2AF7FD31AB86 /* SidebarView.swift */; };
@@ -27,6 +28,7 @@
 		8FD069D6A33E2AF7FD31AB86 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		ADC9C75EE5A57412F76783F2 /* PageEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageEditorView.swift; sourceTree = "<group>"; };
 		B8E2A25E0D44A18FB5420ACF /* SidebarExpansion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarExpansion.swift; sourceTree = "<group>"; };
+		C2AE67FA1FA45839EE0FF71B /* DraggedItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraggedItem.swift; sourceTree = "<group>"; };
 		CC45749CCA0B22FFD810C16B /* OlaiModelContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OlaiModelContainer.swift; sourceTree = "<group>"; };
 		CDCA033DC1C2BFB46C60C7E4 /* OlaiCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = OlaiCore; path = OlaiCore; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -87,6 +89,7 @@
 		B3DA3A0428518017E346E110 /* Sidebar */ = {
 			isa = PBXGroup;
 			children = (
+				C2AE67FA1FA45839EE0FF71B /* DraggedItem.swift */,
 				6BD4C92D8D37BDAF3AA9B022 /* NoteTree.swift */,
 				B8E2A25E0D44A18FB5420ACF /* SidebarExpansion.swift */,
 				8FD069D6A33E2AF7FD31AB86 /* SidebarView.swift */,
@@ -191,6 +194,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3649C9D2874EBC723419974C /* DraggedItem.swift in Sources */,
 				5FF096350C03DC621FDE10FD /* NoteTree.swift in Sources */,
 				507EA9CE2841AD5187B1AD07 /* OlaiApp.swift in Sources */,
 				455F465DA9DDEB684153DE0F /* OlaiModelContainer.swift in Sources */,
