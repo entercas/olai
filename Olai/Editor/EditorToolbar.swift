@@ -4,6 +4,7 @@ import SwiftUI
 /// receives command names.
 struct EditorToolbar: View {
     let controller: EditorController
+    let dictation: DictationService
     let onInsertImage: () -> Void
     let onScheduleTask: () -> Void
 
@@ -62,6 +63,14 @@ struct EditorToolbar: View {
                         on: state.mindMap
                     ) { controller.run("toggleMindMap") }
 
+                    button(
+                        dictation.state.isRunning ? "mic.fill" : "mic",
+                        dictationTitle,
+                        on: dictation.state.isRunning
+                    ) {
+                        Task { await dictation.toggle() }
+                    }
+
                     button("photo", "Insert Image", action: onInsertImage)
                     button(
                         state.task.reminderID == nil ? "bell" : "bell.fill",
@@ -76,6 +85,15 @@ struct EditorToolbar: View {
             .padding(.vertical, 7)
         }
         .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+    }
+
+    private var dictationTitle: String {
+        switch dictation.state {
+        case .idle: "Dictate"
+        case .starting: "Starting…"
+        case .listening: "Stop Dictating"
+        case let .failed(message): message
+        }
     }
 
     @ViewBuilder

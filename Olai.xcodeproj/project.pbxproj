@@ -12,6 +12,7 @@
 		1470552D5BEE7C4593BD7EDE /* editor.html in Resources */ = {isa = PBXBuildFile; fileRef = 0E64777A0E619A5DF8288349 /* editor.html */; };
 		222F5B3A86AAA047B49E7A65 /* goals.json in Resources */ = {isa = PBXBuildFile; fileRef = 262E63A50CCEF0734C2E5F09 /* goals.json */; };
 		27D230B2756FEE4915F2EA15 /* OlaiCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3DF7DDD6CB4ADD58C6D03734 /* OlaiCore */; };
+		282196F7BDA313804C0AEF4E /* DictationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1629147F76F34641732268 /* DictationService.swift */; };
 		2EE4CC68D3B3658B32690E30 /* TemplateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40877970807595091A0D1D8 /* TemplateStore.swift */; };
 		3649C9D2874EBC723419974C /* DraggedItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2AE67FA1FA45839EE0FF71B /* DraggedItem.swift */; };
 		407055C1FD60D25CE18C8C91 /* EditorWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B19871D04521AAB0C9D5708 /* EditorWebView.swift */; };
@@ -31,6 +32,7 @@
 		C6DF214C2F9DB45E5DC320F9 /* project.json in Resources */ = {isa = PBXBuildFile; fileRef = 79ACF9C4BEFE4B66749FBDA4 /* project.json */; };
 		CA4AE14565D9CEA3146F6C02 /* ScheduleTaskSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EB2328F1634504C6F755257 /* ScheduleTaskSheet.swift */; };
 		CA84B25DB86C8EB1DCCF85BE /* TaskScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCA66FCBCBF59E9685F7CB8 /* TaskScheduler.swift */; };
+		D4C58908C87D300D521098C0 /* TranscriptImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 395C821C5F0BC57CF6BF6B63 /* TranscriptImport.swift */; };
 		DF9D40FE98FABE1BE1DF33C0 /* MirrorSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 062FB626D732E383175122F6 /* MirrorSettings.swift */; };
 		E3E206C4E10307711D8876A8 /* MirrorTrigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A892132E8E5E1340771205D /* MirrorTrigger.swift */; };
 		E6CAFA5717696F02E0576749 /* ai-prompt.json in Resources */ = {isa = PBXBuildFile; fileRef = E1DB799A987C765D1D022BDE /* ai-prompt.json */; };
@@ -48,6 +50,7 @@
 		2238EE7DEC5F9936E54682DA /* NoteTree+Templates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NoteTree+Templates.swift"; sourceTree = "<group>"; };
 		262E63A50CCEF0734C2E5F09 /* goals.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = goals.json; sourceTree = "<group>"; };
 		278B5D81625AFC5C3AA59CC5 /* EditorToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorToolbar.swift; sourceTree = "<group>"; };
+		395C821C5F0BC57CF6BF6B63 /* TranscriptImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptImport.swift; sourceTree = "<group>"; };
 		3A73FE08BD20F369CB78582E /* OlaiSchemeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OlaiSchemeHandler.swift; sourceTree = "<group>"; };
 		3A892132E8E5E1340771205D /* MirrorTrigger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorTrigger.swift; sourceTree = "<group>"; };
 		4359633DD856E081E1F34169 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
@@ -68,6 +71,7 @@
 		C2AE67FA1FA45839EE0FF71B /* DraggedItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraggedItem.swift; sourceTree = "<group>"; };
 		CC45749CCA0B22FFD810C16B /* OlaiModelContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OlaiModelContainer.swift; sourceTree = "<group>"; };
 		CDCA033DC1C2BFB46C60C7E4 /* OlaiCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = OlaiCore; path = OlaiCore; sourceTree = SOURCE_ROOT; };
+		DA1629147F76F34641732268 /* DictationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationService.swift; sourceTree = "<group>"; };
 		E0E8EC523552DC170A577376 /* interview.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = interview.json; sourceTree = "<group>"; };
 		E1DB799A987C765D1D022BDE /* ai-prompt.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "ai-prompt.json"; sourceTree = "<group>"; };
 		E2D7B007A55CCAB6A46D3ADF /* transcript.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = transcript.json; sourceTree = "<group>"; };
@@ -145,6 +149,15 @@
 			path = Templates;
 			sourceTree = "<group>";
 		};
+		A1D0BDAD114C546D8BACF664 /* Voice */ = {
+			isa = PBXGroup;
+			children = (
+				DA1629147F76F34641732268 /* DictationService.swift */,
+				395C821C5F0BC57CF6BF6B63 /* TranscriptImport.swift */,
+			);
+			path = Voice;
+			sourceTree = "<group>";
+		};
 		A4FE6B0075E681C401C31248 /* Editor */ = {
 			isa = PBXGroup;
 			children = (
@@ -187,6 +200,7 @@
 				620B95539A3522E6A2A34EA1 /* Resources */,
 				B3DA3A0428518017E346E110 /* Sidebar */,
 				73C5ECD3824B6136F8C4900C /* Templates */,
+				A1D0BDAD114C546D8BACF664 /* Voice */,
 			);
 			path = Olai;
 			sourceTree = "<group>";
@@ -293,6 +307,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				282196F7BDA313804C0AEF4E /* DictationService.swift in Sources */,
 				3649C9D2874EBC723419974C /* DraggedItem.swift in Sources */,
 				FDE522E9ACBD1C0906BF3FE1 /* EditorController.swift in Sources */,
 				02FBE5B39DCB4F6857E88518 /* EditorToolbar.swift in Sources */,
@@ -314,6 +329,7 @@
 				5E2C2BAF949E3D4D54D5FFAA /* SidebarView.swift in Sources */,
 				CA84B25DB86C8EB1DCCF85BE /* TaskScheduler.swift in Sources */,
 				2EE4CC68D3B3658B32690E30 /* TemplateStore.swift in Sources */,
+				D4C58908C87D300D521098C0 /* TranscriptImport.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

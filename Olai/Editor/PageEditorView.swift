@@ -18,6 +18,7 @@ struct PageEditorView: View {
     @Environment(\.scheduleMirrorExport) private var scheduleMirrorExport
 
     @State private var controller = EditorController()
+    @State private var dictation = DictationService()
     @State private var title: String = ""
     @State private var didLoad = false
     @State private var isSchedulePresented = false
@@ -46,9 +47,19 @@ struct PageEditorView: View {
 
             EditorToolbar(
                 controller: controller,
+                dictation: dictation,
                 onInsertImage: { isImporterPresented = true },
                 onScheduleTask: { isSchedulePresented = true }
             )
+
+            if case let .failed(message) = dictation.state {
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .padding(.horizontal, EditorMetrics.gutter)
+                    .padding(.bottom, 6)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             Divider()
 
@@ -62,7 +73,10 @@ struct PageEditorView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .onAppear(perform: load)
-        .onDisappear { controller.flush() }
+        .onDisappear {
+            controller.flush()
+            dictation.stop()
+        }
         .onChange(of: colorScheme) { _, new in controller.applyTheme(dark: new == .dark) }
         .task(id: title) { await saveTitle() }
         .sheet(isPresented: $isSchedulePresented) {
@@ -107,6 +121,10 @@ struct PageEditorView: View {
 
         controller.onImagePasted = { data, mime, name in
             store(data: data, mime: mime, name: name)
+        }
+
+        dictation.onText = { text in
+            controller.insertText(text)
         }
 
         controller.setDocument(json: page.body)

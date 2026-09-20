@@ -41,8 +41,49 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Dictation turns what you say into text in the page you are editing. Recognition runs on this device.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Olai records audio only while you are dictating into a page.</string>
 	<key>NSRemindersFullAccessUsageDescription</key>
 	<string>Olai schedules the tasks you create in a page as reminders, so they can notify you when they are due.</string>
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>org.w3.webvtt</string>
+			<key>UTTypeDescription</key>
+			<string>WebVTT transcript</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>vtt</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>public.subrip-subtitle</string>
+			<key>UTTypeDescription</key>
+			<string>SubRip transcript</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>srt</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
 	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>

@@ -24,6 +24,8 @@ struct RootView: View {
     @State private var renameTarget: TreeItem?
     @State private var renameText: String = ""
     @State private var deleteTarget: TreeItem?
+    @State private var isImportingTranscript = false
+    @State private var importError: String?
 
     var body: some View {
         NavigationSplitView {
@@ -39,6 +41,28 @@ struct RootView: View {
         // The window's own title, so it spans the whole title bar rather than belonging
         // to the detail pane.
         .navigationTitle("Olai")
+        .fileImporter(
+            isPresented: $isImportingTranscript,
+            allowedContentTypes: TranscriptImport.readableTypes
+        ) { result in
+            do {
+                guard case let .success(url) = result else { return }
+                let page = try TranscriptImport.importTranscript(
+                    from: url,
+                    into: insertionFolder,
+                    context: context
+                )
+                selection = .page(page.id)
+                scheduleMirrorExport()
+            } catch {
+                importError = error.localizedDescription
+            }
+        }
+        .alert("Could not read that transcript", isPresented: importErrorIsPresented) {
+            Button("OK", role: .cancel) { importError = nil }
+        } message: {
+            Text(importError ?? "")
+        }
         .alert("Rename", isPresented: renameIsPresented) {
             TextField("Name", text: $renameText)
             Button("Cancel", role: .cancel) { renameTarget = nil }
@@ -86,6 +110,7 @@ struct RootView: View {
                 beginRename(.folder(child), startingEmpty: true)
             },
             addFromTemplate: mirrored { template, folder in create(from: template, in: folder) },
+            importTranscript: { isImportingTranscript = true },
             move: { item, destination in
                 let moved = move(item, into: destination)
                 if moved { scheduleMirrorExport() }
@@ -214,6 +239,10 @@ struct RootView: View {
         scheduleMirrorExport()
     }
 
+    private var importErrorIsPresented: Binding<Bool> {
+        Binding(get: { importError != nil }, set: { if !$0 { importError = nil } })
+    }
+
     private var renameIsPresented: Binding<Bool> {
         Binding(get: { renameTarget != nil }, set: { if !$0 { renameTarget = nil } })
     }
@@ -301,18 +330,20 @@ struct NewItemButtons: View {
         }
         .help("New folder")
 
-        Button(action: actions.newPage) {
-            Label("New Page", systemImage: "square.and.pencil")
-        }
-        .help("New page")
-
+        // Click for a blank page; the menu holds the templates. A fourth toolbar item
+        // does not fit beside the sidebar's collapse button -- it lands in the overflow
+        // menu, where nobody finds it.
         Menu {
             ForEach(TemplateStore.all) { template in
                 Button(template.name) { actions.newFromTemplate(template) }
             }
+            Divider()
+            Button("Import Transcript…", systemImage: "waveform") { actions.importTranscript() }
         } label: {
-            Label("New from Template", systemImage: "doc.badge.plus")
+            Label("New Page", systemImage: "square.and.pencil")
+        } primaryAction: {
+            actions.newPage()
         }
-        .help("New from template")
+        .help("New page — hold for templates")
     }
 }
