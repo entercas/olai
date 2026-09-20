@@ -89,6 +89,16 @@ final class EditorController: NSObject {
         evaluate("window.olai.insertImage({id: '\(id.uuidString)'})")
     }
 
+    /// Rewrites the in-progress dictation rather than appending to it.
+    func setDictationText(_ text: String) {
+        guard let encoded = jsString(text) else { return }
+        evaluate("window.olai.setDictationText({text: \(encoded)})")
+    }
+
+    func endDictation() {
+        evaluate("window.olai.endDictation()")
+    }
+
     func setTaskReminder(id: String?, due: String?) {
         let reminder = id.flatMap(jsString) ?? "null"
         let dueText = due.flatMap(jsString) ?? "null"

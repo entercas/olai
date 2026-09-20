@@ -123,9 +123,11 @@ struct PageEditorView: View {
             store(data: data, mime: mime, name: name)
         }
 
-        dictation.onText = { text in
-            controller.insertText(text)
+        dictation.onTranscript = { text, isFinal in
+            controller.setDictationText(text)
+            if isFinal { controller.endDictation() }
         }
+        dictation.onFinish = { controller.endDictation() }
 
         controller.setDocument(json: page.body)
         controller.applyTheme(dark: colorScheme == .dark)

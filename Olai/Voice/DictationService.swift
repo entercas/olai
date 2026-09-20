@@ -21,15 +21,18 @@ final class DictationService {
 
     private(set) var state: State = .idle
 
-    /// Called with each new piece of recognised text, ready to insert.
-    var onText: ((String) -> Void)?
+    /// The whole utterance as currently understood, and whether the recogniser is done
+    /// with it. Recognition revises what it has already reported, so this is the text to
+    /// show, not an increment to append.
+    var onTranscript: ((String, Bool) -> Void)?
+
+    /// Dictation has ended, however it ended.
+    var onFinish: (() -> Void)?
 
     @ObservationIgnored private let recognizer = SFSpeechRecognizer(locale: .current)
     @ObservationIgnored private let engine = AVAudioEngine()
     @ObservationIgnored private var request: SFSpeechAudioBufferRecognitionRequest?
     @ObservationIgnored private var task: SFSpeechRecognitionTask?
-    /// What has already been inserted for this utterance, so only the new tail goes in.
-    @ObservationIgnored private var inserted = ""
 
     func toggle() async {
         state.isRunning ? stop() : await start()
@@ -38,7 +41,6 @@ final class DictationService {
     func start() async {
         guard !state.isRunning else { return }
         state = .starting
-        inserted = ""
 
         guard let recognizer, recognizer.isAvailable else {
             state = .failed("Speech recognition is not available on this device.")
@@ -67,6 +69,7 @@ final class DictationService {
         request = nil
         task = nil
         if state.isRunning { state = .idle }
+        onFinish?()
     }
 
     // MARK: Plumbing
@@ -107,6 +110,8 @@ final class DictationService {
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
         request.requiresOnDeviceRecognition = true
+        request.addsPunctuation = true
+        request.taskHint = .dictation
         self.request = request
 
         try Self.startCapturing(with: engine, into: request)
@@ -150,26 +155,9 @@ final class DictationService {
 
     private func receive(transcript: String?, isFinal: Bool, failed: Bool) {
         if let transcript {
-            emit(transcript)
-            if isFinal { inserted = "" }
+            onTranscript?(transcript, isFinal)
         }
         // A recognition error ends the utterance; the user can start again.
         if failed { stop() }
-    }
-
-    /// Results arrive as the whole utterance so far, so only what is new is inserted.
-    private func emit(_ transcript: String) {
-        guard transcript != inserted else { return }
-
-        if transcript.hasPrefix(inserted) {
-            let tail = String(transcript.dropFirst(inserted.count))
-            inserted = transcript
-            if !tail.isEmpty { onText?(tail) }
-        } else {
-            // The recogniser revised what it heard; start a fresh run rather than
-            // trying to retract text the user may already have edited.
-            inserted = transcript
-            onText?(" " + transcript)
-        }
     }
 }

@@ -335,6 +335,45 @@ function setMindMap(visible) {
   sendState()
 }
 
+// MARK: Dictation
+//
+// Speech recognition streams a revisable guess at the whole utterance, not a stream of
+// new words: "the legacy" becomes "the latency" a moment later. So the text is held as
+// a replaceable range and rewritten in place; appending each result would repeat the
+// sentence every time the recogniser changed its mind.
+
+let dictation = null // { from, to, text }
+
+/** Drops the range if the text there is no longer ours -- the caret moved, or the
+ *  document was edited while dictating. */
+function dictationRangeIsIntact() {
+  if (!dictation) return false
+  const { doc } = editor.state
+  if (dictation.to > doc.content.size) return false
+  return doc.textBetween(dictation.from, dictation.to, '', '') === dictation.text
+}
+
+function replaceDictation(spoken) {
+  if (!dictationRangeIsIntact()) dictation = null
+
+  if (!dictation) {
+    // Focus first: the caret has to exist before its position means anything.
+    editor.chain().focus().run()
+    const from = editor.state.selection.to
+    // A block boundary counts as whitespace, so a new paragraph needs no space.
+    const before = editor.state.doc.textBetween(Math.max(from - 1, 0), from, ' ', ' ')
+    dictation = { from, to: from, text: '', separator: before.trim() ? ' ' : '' }
+  }
+
+  const text = dictation.separator + spoken
+  editor
+    .chain()
+    .insertContentAt({ from: dictation.from, to: dictation.to }, text)
+    .run()
+
+  dictation = { ...dictation, to: dictation.from + text.length, text }
+}
+
 /** Everything Swift can call. */
 window.olai = {
   setDocument({ json, readOnly }) {
@@ -362,6 +401,18 @@ window.olai = {
     const run = COMMANDS[name]
     if (run) run(payload)
     sendState()
+  },
+
+  /** Rewrites what is being dictated, in place. */
+  setDictationText({ text }) {
+    // No sendState here: the edit itself fires onUpdate, which reports state. Posting
+    // twice per partial result only adds work between speaking and seeing the words.
+    replaceDictation(text ?? '')
+  },
+
+  /** Ends the utterance: the next one starts its own range. */
+  endDictation() {
+    dictation = null
   },
 
   /** Records that this task item was scheduled, so it can be opened or updated later. */
