@@ -52,7 +52,7 @@ private struct DetailView: View {
             ContentUnavailableView(
                 "No page selected",
                 systemImage: "doc.text",
-                description: Text("Pick a page in the sidebar, or create one with the + button.")
+                description: Text("Pick a page in the sidebar, or make one with New Page.")
             )
         }
     }

@@ -15,37 +15,42 @@ struct PageEditorView: View {
     @State private var didLoad = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 3) {
-                TextField("Title", text: $title)
-                    .textFieldStyle(.plain)
-                    .font(.title2.weight(.semibold))
-                #if os(iOS)
-                    .submitLabel(.done)
-                #endif
+        // The scroll view fills the pane so its scrollbar sits at the pane's edge, the
+        // way every other document window puts it; only the *content* is inset to a
+        // readable column, and the header matches that inset.
+        GeometryReader { proxy in
+            let inset = EditorMetrics.sideInset(forPaneWidth: proxy.size.width)
 
-                Text("Edited \(page.updatedAt.formatted(.relative(presentation: .named)))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 3) {
+                    TextField("Title", text: $title)
+                        .textFieldStyle(.plain)
+                        .font(.title2.weight(.semibold))
+                    #if os(iOS)
+                        .submitLabel(.done)
+                    #endif
+
+                    Text("Edited \(page.updatedAt.formatted(.relative(presentation: .named)))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, inset)
+                .padding(.top, 20)
+                .padding(.bottom, 12)
+
+                Divider()
+                    .padding(.horizontal, inset)
+
+                TextEditor(text: $text)
+                    .textEditorStyle(.plain)
+                    .font(.body)
+                    .lineSpacing(2)
+                    .scrollContentBackground(.hidden)
+                    .safeAreaPadding(.horizontal, inset)
+                    .safeAreaPadding(.vertical, 14)
             }
-            .padding(.horizontal, EditorMetrics.gutter)
-            .padding(.top, 20)
-            .padding(.bottom, 12)
-
-            Divider()
-                .padding(.horizontal, EditorMetrics.gutter)
-
-            TextEditor(text: $text)
-                .textEditorStyle(.plain)
-                .font(.body)
-                .lineSpacing(2)
-                .scrollContentBackground(.hidden)
-                .padding(.horizontal, EditorMetrics.gutter)
-                .padding(.top, 14)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
-        // A measured column: full width is unreadable on a wide Mac window.
-        .frame(maxWidth: EditorMetrics.columnWidth, alignment: .leading)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         // The document's own title is the field above, so the toolbar shows where the
         // page lives instead of repeating it.
         .navigationTitle(LocationTitle.of(page.folder))
@@ -86,6 +91,11 @@ struct PageEditorView: View {
 enum EditorMetrics {
     static let gutter: CGFloat = 28
     static let columnWidth: CGFloat = 860
+
+    /// Side inset that centres a `columnWidth` column, never tighter than the gutter.
+    static func sideInset(forPaneWidth width: CGFloat) -> CGFloat {
+        max(gutter, (width - columnWidth) / 2)
+    }
 }
 
 /// Where an item sits in the tree, for the detail pane's title.

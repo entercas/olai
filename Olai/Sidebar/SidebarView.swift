@@ -58,6 +58,12 @@ struct SidebarView: View {
         }
         .listStyle(.sidebar)
         .navigationTitle("Olai")
+        #if os(macOS)
+        // A sidebar's toolbar area is only as wide as the sidebar, so a second button
+        // there is pushed into the window's overflow menu however wide the window is.
+        // A footer keeps both in reach and reads like Finder's.
+        .safeAreaInset(edge: .bottom, spacing: 0) { newItemBar }
+        #else
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button { newFolder() } label: {
@@ -71,6 +77,7 @@ struct SidebarView: View {
                 .help("New page")
             }
         }
+        #endif
         .alert("Rename", isPresented: renameIsPresented) {
             TextField("Name", text: $renameText)
             Button("Cancel", role: .cancel) { renameTarget = nil }
@@ -89,6 +96,29 @@ struct SidebarView: View {
             }
         }
     }
+
+    #if os(macOS)
+    private var newItemBar: some View {
+        HStack(spacing: 2) {
+            Button { newFolder() } label: {
+                Label("New Folder", systemImage: "folder.badge.plus")
+            }
+            .help("New folder")
+
+            Button { newPage() } label: {
+                Label("New Page", systemImage: "square.and.pencil")
+            }
+            .help("New page")
+
+            Spacer(minLength: 0)
+        }
+        .buttonStyle(.accessoryBar)
+        .font(.subheadline)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 6)
+        .background(.bar)
+    }
+    #endif
 
     // MARK: Actions
 
@@ -213,7 +243,6 @@ private struct FolderDisclosure: View {
             HStack(spacing: 4) {
                 Label(folder.name, systemImage: "folder")
                     .lineLimit(1)
-                    .truncationMode(.middle)
                 Spacer(minLength: 2)
                 addMenu
             }
