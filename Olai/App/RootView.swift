@@ -26,14 +26,7 @@ struct RootView: View {
 
     var body: some View {
         NavigationSplitView {
-            SidebarView(
-                selection: $selection,
-                onNewFolder: newFolder,
-                onNewPage: newPage,
-                onMove: move,
-                onRename: beginRename,
-                onDelete: { deleteTarget = $0 }
-            )
+            SidebarView(selection: $selection, actions: actions)
             .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 340)
         } detail: {
             DetailView(selection: selection)
@@ -62,6 +55,30 @@ struct RootView: View {
                 Text("Its subfolders and pages are deleted too.")
             }
         }
+    }
+
+    private var actions: TreeActions {
+        TreeActions(
+            newFolder: newFolder,
+            newPage: newPage,
+            newFromTemplate: { create(from: $0, in: insertionFolder) },
+            addPage: { folder in
+                let page = NoteTree.addPage(in: folder, context: context)
+                SidebarExpansion.setExpanded(true, for: folder.id)
+                selection = .page(page.id)
+            },
+            addSubfolder: { folder in
+                let child = NoteTree.addFolder(in: folder, context: context)
+                SidebarExpansion.setExpanded(true, for: folder.id)
+                beginRename(.folder(child), startingEmpty: true)
+            },
+            addFromTemplate: { template, folder in create(from: template, in: folder) },
+            move: move,
+            rename: beginRename,
+            setArchived: setArchived,
+            togglePinned: NoteTree.togglePinned,
+            delete: { deleteTarget = $0 }
+        )
     }
 
     // MARK: Creating
@@ -120,6 +137,29 @@ struct RootView: View {
             SidebarExpansion.setExpanded(true, for: destination.id)
         }
         return true
+    }
+
+    /// Builds whatever a template describes and opens the page it produced.
+    private func create(from template: NoteTemplate, in parent: Folder?) {
+        if let parent {
+            SidebarExpansion.setExpanded(true, for: parent.id)
+        }
+        guard let page = NoteTree.create(from: template, in: parent, context: context) else { return }
+        if let folder = page.folder {
+            SidebarExpansion.setExpanded(true, for: folder.id)
+        }
+        selection = .page(page.id)
+    }
+
+    private func setArchived(_ item: TreeItem, _ archived: Bool) {
+        switch item {
+        case let .folder(folder):
+            if archived, selection == .folder(folder.id) { selection = nil }
+            NoteTree.setArchived(archived, on: folder)
+        case let .page(page):
+            if archived, selection == .page(page.id) { selection = nil }
+            NoteTree.setArchived(archived, on: page)
+        }
     }
 
     // MARK: Renaming and deleting
@@ -231,21 +271,29 @@ private struct FolderDetailView: View {
     }
 }
 
-/// The two creation buttons, shown in the window toolbar on macOS and in the sidebar's
+/// The creation buttons, shown in the window toolbar on macOS and in the sidebar's
 /// navigation bar on iPhone.
 struct NewItemButtons: View {
-    let newFolder: () -> Void
-    let newPage: () -> Void
+    let actions: TreeActions
 
     var body: some View {
-        Button(action: newFolder) {
+        Button(action: actions.newFolder) {
             Label("New Folder", systemImage: "folder.badge.plus")
         }
         .help("New folder")
 
-        Button(action: newPage) {
+        Button(action: actions.newPage) {
             Label("New Page", systemImage: "square.and.pencil")
         }
         .help("New page")
+
+        Menu {
+            ForEach(TemplateStore.all) { template in
+                Button(template.name) { actions.newFromTemplate(template) }
+            }
+        } label: {
+            Label("New from Template", systemImage: "doc.badge.plus")
+        }
+        .help("New from template")
     }
 }

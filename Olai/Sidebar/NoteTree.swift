@@ -69,6 +69,26 @@ enum NoteTree {
         folder.canBeMoved(to: destination)
     }
 
+    // MARK: Archive and pin
+
+    /// Archiving a folder takes its whole subtree with it, so the tree cannot show a
+    /// live child under an archived parent.
+    static func setArchived(_ archived: Bool, on folder: Folder) {
+        folder.isArchived = archived
+        folder.sortedChildren.forEach { setArchived(archived, on: $0) }
+        folder.sortedPages.forEach { setArchived(archived, on: $0) }
+    }
+
+    static func setArchived(_ archived: Bool, on page: Page) {
+        page.isArchived = archived
+        page.updatedAt = Date()
+    }
+
+    static func togglePinned(_ page: Page) {
+        page.isPinned.toggle()
+        page.updatedAt = Date()
+    }
+
     // MARK: Delete
 
     static func delete(_ folder: Folder, context: ModelContext) {

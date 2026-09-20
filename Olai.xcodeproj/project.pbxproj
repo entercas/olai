@@ -9,19 +9,27 @@
 /* Begin PBXBuildFile section */
 		02FBE5B39DCB4F6857E88518 /* EditorToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 278B5D81625AFC5C3AA59CC5 /* EditorToolbar.swift */; };
 		1470552D5BEE7C4593BD7EDE /* editor.html in Resources */ = {isa = PBXBuildFile; fileRef = 0E64777A0E619A5DF8288349 /* editor.html */; };
+		222F5B3A86AAA047B49E7A65 /* goals.json in Resources */ = {isa = PBXBuildFile; fileRef = 262E63A50CCEF0734C2E5F09 /* goals.json */; };
 		27D230B2756FEE4915F2EA15 /* OlaiCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3DF7DDD6CB4ADD58C6D03734 /* OlaiCore */; };
+		2EE4CC68D3B3658B32690E30 /* TemplateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40877970807595091A0D1D8 /* TemplateStore.swift */; };
 		3649C9D2874EBC723419974C /* DraggedItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2AE67FA1FA45839EE0FF71B /* DraggedItem.swift */; };
 		407055C1FD60D25CE18C8C91 /* EditorWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B19871D04521AAB0C9D5708 /* EditorWebView.swift */; };
 		455F465DA9DDEB684153DE0F /* OlaiModelContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC45749CCA0B22FFD810C16B /* OlaiModelContainer.swift */; };
+		4CD998A1832AFDE3C94CAE30 /* weekly.json in Resources */ = {isa = PBXBuildFile; fileRef = 69676CAB673C0723AEF66B6A /* weekly.json */; };
 		507EA9CE2841AD5187B1AD07 /* OlaiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F94C1D7CE0859841ACE0F22 /* OlaiApp.swift */; };
 		5E2C2BAF949E3D4D54D5FFAA /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD069D6A33E2AF7FD31AB86 /* SidebarView.swift */; };
 		5FF096350C03DC621FDE10FD /* NoteTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BD4C92D8D37BDAF3AA9B022 /* NoteTree.swift */; };
 		7905D6513D08A17E73CE9D55 /* PageEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADC9C75EE5A57412F76783F2 /* PageEditorView.swift */; };
+		8E2D4C93EC8C790C57D61FF3 /* NoteTree+Templates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2238EE7DEC5F9936E54682DA /* NoteTree+Templates.swift */; };
 		B341FEC01DE0B591B59A3C3B /* SidebarExpansion.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8E2A25E0D44A18FB5420ACF /* SidebarExpansion.swift */; };
+		B7E6216ACE6F3A387EE94AFD /* interview.json in Resources */ = {isa = PBXBuildFile; fileRef = E0E8EC523552DC170A577376 /* interview.json */; };
 		B8CB4BF0E14536659A6E2B41 /* OlaiSchemeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A73FE08BD20F369CB78582E /* OlaiSchemeHandler.swift */; };
 		BAD537635B707C7572E9D832 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4BFF3A26C9354908CA874DA4 /* Assets.xcassets */; };
+		BEFDD083241A6F9A000FC2DE /* transcript.json in Resources */ = {isa = PBXBuildFile; fileRef = E2D7B007A55CCAB6A46D3ADF /* transcript.json */; };
+		C6DF214C2F9DB45E5DC320F9 /* project.json in Resources */ = {isa = PBXBuildFile; fileRef = 79ACF9C4BEFE4B66749FBDA4 /* project.json */; };
 		CA4AE14565D9CEA3146F6C02 /* ScheduleTaskSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EB2328F1634504C6F755257 /* ScheduleTaskSheet.swift */; };
 		CA84B25DB86C8EB1DCCF85BE /* TaskScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCA66FCBCBF59E9685F7CB8 /* TaskScheduler.swift */; };
+		E6CAFA5717696F02E0576749 /* ai-prompt.json in Resources */ = {isa = PBXBuildFile; fileRef = E1DB799A987C765D1D022BDE /* ai-prompt.json */; };
 		FAA409922064C7B1139A696D /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4359633DD856E081E1F34169 /* RootView.swift */; };
 		FD11DE009BF226C42F3C4091 /* PasteboardImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01CB9EBBC3BA55E366A61D76 /* PasteboardImage.swift */; };
 		FDE522E9ACBD1C0906BF3FE1 /* EditorController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92E723D1F71911CD23D33C62 /* EditorController.swift */; };
@@ -32,21 +40,29 @@
 		0E64777A0E619A5DF8288349 /* editor.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = editor.html; sourceTree = "<group>"; };
 		0EB2328F1634504C6F755257 /* ScheduleTaskSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleTaskSheet.swift; sourceTree = "<group>"; };
 		1F72132FCF2501235935A088 /* Olai.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Olai.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2238EE7DEC5F9936E54682DA /* NoteTree+Templates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NoteTree+Templates.swift"; sourceTree = "<group>"; };
+		262E63A50CCEF0734C2E5F09 /* goals.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = goals.json; sourceTree = "<group>"; };
 		278B5D81625AFC5C3AA59CC5 /* EditorToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorToolbar.swift; sourceTree = "<group>"; };
 		3A73FE08BD20F369CB78582E /* OlaiSchemeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OlaiSchemeHandler.swift; sourceTree = "<group>"; };
 		4359633DD856E081E1F34169 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		4BFF3A26C9354908CA874DA4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		4F94C1D7CE0859841ACE0F22 /* OlaiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OlaiApp.swift; sourceTree = "<group>"; };
+		69676CAB673C0723AEF66B6A /* weekly.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = weekly.json; sourceTree = "<group>"; };
 		6BD4C92D8D37BDAF3AA9B022 /* NoteTree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteTree.swift; sourceTree = "<group>"; };
+		79ACF9C4BEFE4B66749FBDA4 /* project.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = project.json; sourceTree = "<group>"; };
 		7BCA66FCBCBF59E9685F7CB8 /* TaskScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskScheduler.swift; sourceTree = "<group>"; };
 		8B19871D04521AAB0C9D5708 /* EditorWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorWebView.swift; sourceTree = "<group>"; };
 		8FD069D6A33E2AF7FD31AB86 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		92E723D1F71911CD23D33C62 /* EditorController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorController.swift; sourceTree = "<group>"; };
+		A40877970807595091A0D1D8 /* TemplateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateStore.swift; sourceTree = "<group>"; };
 		ADC9C75EE5A57412F76783F2 /* PageEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageEditorView.swift; sourceTree = "<group>"; };
 		B8E2A25E0D44A18FB5420ACF /* SidebarExpansion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarExpansion.swift; sourceTree = "<group>"; };
 		C2AE67FA1FA45839EE0FF71B /* DraggedItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraggedItem.swift; sourceTree = "<group>"; };
 		CC45749CCA0B22FFD810C16B /* OlaiModelContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OlaiModelContainer.swift; sourceTree = "<group>"; };
 		CDCA033DC1C2BFB46C60C7E4 /* OlaiCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = OlaiCore; path = OlaiCore; sourceTree = SOURCE_ROOT; };
+		E0E8EC523552DC170A577376 /* interview.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = interview.json; sourceTree = "<group>"; };
+		E1DB799A987C765D1D022BDE /* ai-prompt.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "ai-prompt.json"; sourceTree = "<group>"; };
+		E2D7B007A55CCAB6A46D3ADF /* transcript.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = transcript.json; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,6 +77,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0FF8E1D17D96BA4C6376AE64 /* Templates */ = {
+			isa = PBXGroup;
+			children = (
+				E1DB799A987C765D1D022BDE /* ai-prompt.json */,
+				262E63A50CCEF0734C2E5F09 /* goals.json */,
+				E0E8EC523552DC170A577376 /* interview.json */,
+				79ACF9C4BEFE4B66749FBDA4 /* project.json */,
+				E2D7B007A55CCAB6A46D3ADF /* transcript.json */,
+				69676CAB673C0723AEF66B6A /* weekly.json */,
+			);
+			path = Templates;
+			sourceTree = "<group>";
+		};
 		288D2ACCD179B45F89D77EDB /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -81,10 +110,20 @@
 		620B95539A3522E6A2A34EA1 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				0FF8E1D17D96BA4C6376AE64 /* Templates */,
 				4BFF3A26C9354908CA874DA4 /* Assets.xcassets */,
 				0E64777A0E619A5DF8288349 /* editor.html */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		73C5ECD3824B6136F8C4900C /* Templates */ = {
+			isa = PBXGroup;
+			children = (
+				2238EE7DEC5F9936E54682DA /* NoteTree+Templates.swift */,
+				A40877970807595091A0D1D8 /* TemplateStore.swift */,
+			);
+			path = Templates;
 			sourceTree = "<group>";
 		};
 		A4FE6B0075E681C401C31248 /* Editor */ = {
@@ -127,6 +166,7 @@
 				A4FE6B0075E681C401C31248 /* Editor */,
 				620B95539A3522E6A2A34EA1 /* Resources */,
 				B3DA3A0428518017E346E110 /* Sidebar */,
+				73C5ECD3824B6136F8C4900C /* Templates */,
 			);
 			path = Olai;
 			sourceTree = "<group>";
@@ -216,7 +256,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				BAD537635B707C7572E9D832 /* Assets.xcassets in Resources */,
+				E6CAFA5717696F02E0576749 /* ai-prompt.json in Resources */,
 				1470552D5BEE7C4593BD7EDE /* editor.html in Resources */,
+				222F5B3A86AAA047B49E7A65 /* goals.json in Resources */,
+				B7E6216ACE6F3A387EE94AFD /* interview.json in Resources */,
+				C6DF214C2F9DB45E5DC320F9 /* project.json in Resources */,
+				BEFDD083241A6F9A000FC2DE /* transcript.json in Resources */,
+				4CD998A1832AFDE3C94CAE30 /* weekly.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -231,6 +277,7 @@
 				FDE522E9ACBD1C0906BF3FE1 /* EditorController.swift in Sources */,
 				02FBE5B39DCB4F6857E88518 /* EditorToolbar.swift in Sources */,
 				407055C1FD60D25CE18C8C91 /* EditorWebView.swift in Sources */,
+				8E2D4C93EC8C790C57D61FF3 /* NoteTree+Templates.swift in Sources */,
 				5FF096350C03DC621FDE10FD /* NoteTree.swift in Sources */,
 				507EA9CE2841AD5187B1AD07 /* OlaiApp.swift in Sources */,
 				455F465DA9DDEB684153DE0F /* OlaiModelContainer.swift in Sources */,
@@ -242,6 +289,7 @@
 				B341FEC01DE0B591B59A3C3B /* SidebarExpansion.swift in Sources */,
 				5E2C2BAF949E3D4D54D5FFAA /* SidebarView.swift in Sources */,
 				CA84B25DB86C8EB1DCCF85BE /* TaskScheduler.swift in Sources */,
+				2EE4CC68D3B3658B32690E30 /* TemplateStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

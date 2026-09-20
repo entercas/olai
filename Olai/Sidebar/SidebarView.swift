@@ -3,17 +3,19 @@ import SwiftData
 import SwiftUI
 
 /// The folder/page tree. Folders nest through recursive `DisclosureGroup`s whose
-/// expansion is persisted; pages are leaves.
+/// expansion is persisted; pages are leaves. Searching replaces the tree with matches,
+/// and archived items live in their own section at the bottom.
 struct SidebarView: View {
     @Binding var selection: SidebarSelection?
-    let onNewFolder: () -> Void
-    let onNewPage: () -> Void
-    let onMove: (DraggedItem, Folder?) -> Bool
-    let onRename: (TreeItem, Bool) -> Void
-    let onDelete: (TreeItem) -> Void
+    let actions: TreeActions
 
     @Query private var allFolders: [Folder]
     @Query private var allPages: [Page]
+    @State private var search = ""
+
+    private var isSearching: Bool {
+        !search.trimmingCharacters(in: .whitespaces).isEmpty
+    }
 
     private var rootFolders: [Folder] {
         allFolders.filter { $0.parent == nil && !$0.isArchived }.sorted(by: Folder.displayOrder)
@@ -23,28 +25,75 @@ struct SidebarView: View {
         allPages.filter { $0.folder == nil && !$0.isArchived }.sorted(by: Page.displayOrder)
     }
 
+    /// Title and body, as the spec's search covers both.
+    private var matches: [Page] {
+        let needle = search.trimmingCharacters(in: .whitespaces)
+        return allPages
+            .filter {
+                $0.title.localizedStandardContains(needle)
+                    || $0.plainText.localizedStandardContains(needle)
+            }
+            .sorted(by: Page.displayOrder)
+    }
+
+    /// Only the roots of archived subtrees: archiving cascades, so showing every
+    /// archived folder would list a subtree's insides alongside it.
+    private var archivedFolders: [Folder] {
+        allFolders
+            .filter { $0.isArchived && !($0.parent?.isArchived ?? false) }
+            .sorted(by: Folder.displayOrder)
+    }
+
+    private var archivedPages: [Page] {
+        allPages
+            .filter { $0.isArchived && !($0.folder?.isArchived ?? false) }
+            .sorted(by: Page.displayOrder)
+    }
+
     var body: some View {
         List(selection: $selection) {
-            ForEach(rootFolders) { folder in
-                FolderDisclosure(
-                    folder: folder,
-                    allFolders: allFolders,
-                    selection: $selection,
-                    onMove: onMove,
-                    onRename: onRename,
-                    onDelete: onDelete
-                )
-            }
-            ForEach(rootPages) { page in
-                PageRow(
-                    page: page,
-                    allFolders: allFolders,
-                    onRename: onRename,
-                    onDelete: onDelete
-                )
+            if isSearching {
+                Section("Results") {
+                    if matches.isEmpty {
+                        Text("No pages match “\(search)”")
+                            .foregroundStyle(.secondary)
+                    }
+                    ForEach(matches) { page in
+                        PageRow(page: page, allFolders: allFolders, actions: actions)
+                    }
+                }
+            } else {
+                ForEach(rootFolders) { folder in
+                    FolderDisclosure(
+                        folder: folder,
+                        allFolders: allFolders,
+                        selection: $selection,
+                        actions: actions
+                    )
+                }
+                ForEach(rootPages) { page in
+                    PageRow(page: page, allFolders: allFolders, actions: actions)
+                }
+
+                if !archivedFolders.isEmpty || !archivedPages.isEmpty {
+                    Section("Archive") {
+                        ForEach(archivedFolders) { folder in
+                            FolderDisclosure(
+                                folder: folder,
+                                allFolders: allFolders,
+                                selection: $selection,
+                                actions: actions
+                            )
+                        }
+                        ForEach(archivedPages) { page in
+                            PageRow(page: page, allFolders: allFolders, actions: actions)
+                        }
+                    }
+                }
             }
         }
         .listStyle(.sidebar)
+        .searchable(text: $search, prompt: "Search pages")
         // Separates the tree from the window's title bar, which the sidebar would
         // otherwise run straight into.
         .safeAreaInset(edge: .top, spacing: 0) {
@@ -55,11 +104,11 @@ struct SidebarView: View {
             // navigation bar, which is where a collapsed split view shows actions.
             #if os(macOS)
             ToolbarItemGroup(placement: .primaryAction) {
-                NewItemButtons(newFolder: onNewFolder, newPage: onNewPage)
+                NewItemButtons(actions: actions)
             }
             #else
             ToolbarItemGroup(placement: .primaryAction) {
-                NewItemButtons(newFolder: onNewFolder, newPage: onNewPage)
+                NewItemButtons(actions: actions)
             }
             #endif
         }
@@ -69,10 +118,27 @@ struct SidebarView: View {
     }
 }
 
-/// A folder or a page, for the rename/delete flows that treat them alike.
+/// A folder or a page, for the flows that treat them alike.
 enum TreeItem: Hashable {
     case folder(Folder)
     case page(Page)
+}
+
+/// What the sidebar can ask for. The work itself lives in `RootView`, which owns the
+/// model context and the selection.
+@MainActor
+struct TreeActions {
+    var newFolder: () -> Void
+    var newPage: () -> Void
+    var newFromTemplate: (NoteTemplate) -> Void
+    var addPage: (Folder) -> Void
+    var addSubfolder: (Folder) -> Void
+    var addFromTemplate: (NoteTemplate, Folder) -> Void
+    var move: (DraggedItem, Folder?) -> Bool
+    var rename: (TreeItem, Bool) -> Void
+    var setArchived: (TreeItem, Bool) -> Void
+    var togglePinned: (Page) -> Void
+    var delete: (TreeItem) -> Void
 }
 
 // MARK: - Rows
@@ -81,54 +147,45 @@ private struct FolderDisclosure: View {
     @Bindable var folder: Folder
     let allFolders: [Folder]
     @Binding var selection: SidebarSelection?
-    let onMove: (DraggedItem, Folder?) -> Bool
-    let onRename: (TreeItem, Bool) -> Void
-    let onDelete: (TreeItem) -> Void
+    let actions: TreeActions
 
     @AppStorage private var isExpanded: Bool
     @State private var isDropTarget = false
-    @Environment(\.modelContext) private var context
 
     init(
         folder: Folder,
         allFolders: [Folder],
         selection: Binding<SidebarSelection?>,
-        onMove: @escaping (DraggedItem, Folder?) -> Bool,
-        onRename: @escaping (TreeItem, Bool) -> Void,
-        onDelete: @escaping (TreeItem) -> Void
+        actions: TreeActions
     ) {
         _folder = Bindable(folder)
         self.allFolders = allFolders
         _selection = selection
-        self.onMove = onMove
-        self.onRename = onRename
-        self.onDelete = onDelete
+        self.actions = actions
         _isExpanded = AppStorage(wrappedValue: false, SidebarExpansion.key(for: folder.id))
     }
 
     var body: some View {
         DisclosureGroup(isExpanded: $isExpanded) {
-            ForEach(folder.sortedChildren.filter { !$0.isArchived }) { child in
+            ForEach(folder.sortedChildren.filter { $0.isArchived == folder.isArchived }) { child in
                 FolderDisclosure(
                     folder: child,
                     allFolders: allFolders,
                     selection: $selection,
-                    onMove: onMove,
-                    onRename: onRename,
-                    onDelete: onDelete
+                    actions: actions
                 )
             }
-            ForEach(folder.sortedPages.filter { !$0.isArchived }) { page in
-                PageRow(page: page, allFolders: allFolders, onRename: onRename, onDelete: onDelete)
+            ForEach(folder.sortedPages.filter { $0.isArchived == folder.isArchived }) { page in
+                PageRow(page: page, allFolders: allFolders, actions: actions)
             }
         } label: {
             // The menu hangs off the label, not the DisclosureGroup: attached to the
             // group it would also cover every child row inside it.
             HStack(spacing: 4) {
-                Label(folder.name, systemImage: "folder")
+                Label(folder.name, systemImage: folder.isArchived ? "folder.badge.minus" : "folder")
                     .lineLimit(1)
                 Spacer(minLength: 2)
-                addMenu
+                if !folder.isArchived { addMenu }
             }
             .contentShape(.rect)
             .background(
@@ -140,8 +197,8 @@ private struct FolderDisclosure: View {
             .draggable(DraggedItem(kind: .folder, id: folder.id))
             .dropDestination(for: DraggedItem.self) { items, _ in
                 // A drop that lands on the folder it came from, or that would put a
-                // folder inside its own subtree, is refused by onMove.
-                items.reduce(false) { done, item in onMove(item, folder) || done }
+                // folder inside its own subtree, is refused by the move itself.
+                items.reduce(false) { done, item in actions.move(item, folder) || done }
             } isTargeted: { isDropTarget = $0 }
         }
         .tag(SidebarSelection.folder(folder.id))
@@ -150,8 +207,10 @@ private struct FolderDisclosure: View {
     /// The row's own "+": creates inside *this* folder, whatever is selected elsewhere.
     private var addMenu: some View {
         Menu {
-            Button("New Page", systemImage: "square.and.pencil") { addPage() }
-            Button("New Subfolder", systemImage: "folder.badge.plus") { addSubfolder() }
+            Button("New Page", systemImage: "square.and.pencil") { actions.addPage(folder) }
+            Button("New Subfolder", systemImage: "folder.badge.plus") { actions.addSubfolder(folder) }
+            Divider()
+            templateMenu
         } label: {
             Image(systemName: "plus")
                 .font(.caption.weight(.semibold))
@@ -167,33 +226,34 @@ private struct FolderDisclosure: View {
         #endif
     }
 
-    private func addPage() {
-        let page = NoteTree.addPage(in: folder, context: context)
-        isExpanded = true
-        selection = .page(page.id)
-    }
-
-    private func addSubfolder() {
-        let child = NoteTree.addFolder(in: folder, context: context)
-        isExpanded = true
-        onRename(.folder(child), true)
+    private var templateMenu: some View {
+        Menu("New from Template") {
+            ForEach(TemplateStore.all) { template in
+                Button(template.name) { actions.addFromTemplate(template, folder) }
+            }
+        }
     }
 
     @ViewBuilder
     private var menu: some View {
         Group {
-            Button("New Page") { addPage() }
-            Button("New Subfolder") { addSubfolder() }
-            Divider()
-            Button("Rename…") { onRename(.folder(folder), false) }
-            MoveToMenu(allFolders: allFolders) { destination in
-                guard NoteTree.canMove(folder, to: destination) else { return }
-                NoteTree.move(folder, to: destination)
-            } isEnabled: { destination in
-                NoteTree.canMove(folder, to: destination)
+            if folder.isArchived {
+                Button("Unarchive") { actions.setArchived(.folder(folder), false) }
+            } else {
+                Button("New Page") { actions.addPage(folder) }
+                Button("New Subfolder") { actions.addSubfolder(folder) }
+                templateMenu
+                Divider()
+                Button("Rename…") { actions.rename(.folder(folder), false) }
+                MoveToMenu(allFolders: allFolders) { destination in
+                    _ = actions.move(DraggedItem(kind: .folder, id: folder.id), destination)
+                } isEnabled: { destination in
+                    folder.canBeMoved(to: destination)
+                }
+                Button("Archive") { actions.setArchived(.folder(folder), true) }
             }
             Divider()
-            Button("Delete…", role: .destructive) { onDelete(.folder(folder)) }
+            Button("Delete…", role: .destructive) { actions.delete(.folder(folder)) }
         }
     }
 }
@@ -201,28 +261,38 @@ private struct FolderDisclosure: View {
 private struct PageRow: View {
     @Bindable var page: Page
     let allFolders: [Folder]
-    let onRename: (TreeItem, Bool) -> Void
-    let onDelete: (TreeItem) -> Void
+    let actions: TreeActions
 
     var body: some View {
         Label {
             Text(page.title.isEmpty ? "Untitled" : page.title)
                 .lineLimit(1)
         } icon: {
-            Image(systemName: page.isPinned ? "pin.fill" : "doc.text")
+            Image(systemName: icon)
         }
         .tag(SidebarSelection.page(page.id))
         .draggable(DraggedItem(kind: .page, id: page.id))
         .contextMenu {
-            Button("Rename…") { onRename(.page(page), false) }
-            MoveToMenu(allFolders: allFolders) { destination in
-                NoteTree.move(page, to: destination)
-            } isEnabled: { destination in
-                destination?.id != page.folder?.id
+            if page.isArchived {
+                Button("Unarchive") { actions.setArchived(.page(page), false) }
+            } else {
+                Button("Rename…") { actions.rename(.page(page), false) }
+                MoveToMenu(allFolders: allFolders) { destination in
+                    _ = actions.move(DraggedItem(kind: .page, id: page.id), destination)
+                } isEnabled: { destination in
+                    destination?.id != page.folder?.id
+                }
+                Button(page.isPinned ? "Unpin" : "Pin") { actions.togglePinned(page) }
+                Button("Archive") { actions.setArchived(.page(page), true) }
             }
             Divider()
-            Button("Delete…", role: .destructive) { onDelete(.page(page)) }
+            Button("Delete…", role: .destructive) { actions.delete(.page(page)) }
         }
+    }
+
+    private var icon: String {
+        if page.isArchived { return "doc.badge.ellipsis" }
+        return page.isPinned ? "pin.fill" : "doc.text"
     }
 }
 
