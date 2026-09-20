@@ -1,6 +1,8 @@
 import './editor.css'
 
 import { Editor, InputRule } from '@tiptap/core'
+import { Plugin } from '@tiptap/pm/state'
+import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import StarterKit from '@tiptap/starter-kit'
 import Highlight from '@tiptap/extension-highlight'
 import Image from '@tiptap/extension-image'
@@ -105,6 +107,48 @@ const ScheduledTaskItem = TaskItem.extend({
         renderHTML: (attrs) => (attrs.due ? { 'data-due': attrs.due } : {}),
       },
     }
+  },
+
+  /** Shows when a scheduled task is due, just after its text.
+   *
+   *  TaskItem draws itself with a node view that builds its own DOM, so the attribute
+   *  above never reaches the screen -- it only covers serialisation. A widget
+   *  decoration puts a real element inline at the end of the task's first paragraph,
+   *  which also keeps the chip next to the words rather than out at the margin. */
+  addProseMirrorPlugins() {
+    return [
+      ...(this.parent?.() ?? []),
+      new Plugin({
+        props: {
+          decorations: (state) => {
+            const decorations = []
+
+            state.doc.descendants((node, pos) => {
+              if (node.type.name !== 'taskItem' || !node.attrs.due) return
+              const paragraph = node.firstChild
+              if (!paragraph) return
+
+              const endOfText = pos + paragraph.nodeSize
+              decorations.push(
+                Decoration.widget(
+                  endOfText,
+                  () => {
+                    const chip = document.createElement('span')
+                    chip.className = 'due-chip'
+                    chip.textContent = node.attrs.due
+                    chip.contentEditable = 'false'
+                    return chip
+                  },
+                  { side: 1 },
+                ),
+              )
+            })
+
+            return DecorationSet.create(state.doc, decorations)
+          },
+        },
+      }),
+    ]
   },
 })
 

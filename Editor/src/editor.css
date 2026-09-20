@@ -98,19 +98,19 @@ html, body {
 }
 .ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div { color: var(--muted); text-decoration: line-through; }
 
-/* A scheduled task shows when it is due, straight from the attribute. */
-.ProseMirror ul[data-type="taskList"] li[data-due] > div::after {
-  content: attr(data-due);
+/* A scheduled task shows when it is due, inline after its text. */
+.ProseMirror .due-chip {
   display: inline-block;
   margin-left: 0.5em;
-  padding: 0.05em 0.45em;
+  padding: 0.1em 0.5em;
   border-radius: 20px;
   background: var(--code-bg);
   color: var(--muted);
-  font-size: 0.78em;
+  font-size: 0.8em;
   text-decoration: none;
   vertical-align: baseline;
   white-space: nowrap;
+  user-select: none;
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {

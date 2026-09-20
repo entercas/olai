@@ -9,9 +9,18 @@ struct EditorToolbar: View {
 
     private var state: EditorState { controller.state }
 
+    /// One place to tune how big the controls read.
+    private enum Metrics {
+        static let symbol: CGFloat = 16
+        static let width: CGFloat = 34
+        static let height: CGFloat = 30
+        static let corner: CGFloat = 7
+        static let spacing: CGFloat = 3
+    }
+
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 2) {
+            HStack(spacing: Metrics.spacing) {
                 group {
                     button("arrow.uturn.backward", "Undo", enabled: state.canUndo) { controller.run("undo") }
                     button("arrow.uturn.forward", "Redo", enabled: state.canRedo) { controller.run("redo") }
@@ -57,19 +66,19 @@ struct EditorToolbar: View {
                     )
                 }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
         }
         .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
     }
 
     @ViewBuilder
     private func group<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        HStack(spacing: 2) { content() }
+        HStack(spacing: Metrics.spacing) { content() }
     }
 
     private var divider: some View {
-        Divider().frame(height: 16).padding(.horizontal, 4)
+        Divider().frame(height: 20).padding(.horizontal, 6)
     }
 
     private func button(
@@ -81,11 +90,11 @@ struct EditorToolbar: View {
     ) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 13, weight: .medium))
-                .frame(width: 26, height: 22)
+                .font(.system(size: Metrics.symbol, weight: .medium))
+                .frame(width: Metrics.width, height: Metrics.height)
                 .contentShape(.rect)
                 .background(
-                    RoundedRectangle(cornerRadius: 5)
+                    RoundedRectangle(cornerRadius: Metrics.corner)
                         .fill(.tint.opacity(on ? 0.22 : 0))
                 )
                 .foregroundStyle(on ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
