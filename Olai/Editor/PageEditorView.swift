@@ -15,6 +15,7 @@ struct PageEditorView: View {
 
     @Environment(\.modelContext) private var context
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.scheduleMirrorExport) private var scheduleMirrorExport
 
     @State private var controller = EditorController()
     @State private var title: String = ""
@@ -101,6 +102,7 @@ struct PageEditorView: View {
             page.body = data
             page.plainText = plainText
             page.updatedAt = Date()
+            scheduleMirrorExport()
         }
 
         controller.onImagePasted = { data, mime, name in
@@ -119,6 +121,7 @@ struct PageEditorView: View {
         guard trimmed != page.title else { return }
         page.title = trimmed
         page.updatedAt = Date()
+        scheduleMirrorExport()
     }
 
     /// Saves image bytes as an attachment of this page and returns its id; the document

@@ -16,6 +16,7 @@ enum SidebarSelection: Hashable {
 /// the window's overflow menu; from here they get the width of the whole window.
 struct RootView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.scheduleMirrorExport) private var scheduleMirrorExport
     @Query private var allFolders: [Folder]
     @Query private var allPages: [Page]
 
@@ -58,25 +59,41 @@ struct RootView: View {
     }
 
     private var actions: TreeActions {
-        TreeActions(
-            newFolder: newFolder,
-            newPage: newPage,
-            newFromTemplate: { create(from: $0, in: insertionFolder) },
-            addPage: { folder in
+        // Each action is wrapped so the mirror hears about it; forgetting one is the
+        // only way the export can fall behind.
+        func mirrored(_ work: @escaping () -> Void) -> () -> Void {
+            { work(); scheduleMirrorExport() }
+        }
+        func mirrored<T>(_ work: @escaping (T) -> Void) -> (T) -> Void {
+            { work($0); scheduleMirrorExport() }
+        }
+        func mirrored<T, U>(_ work: @escaping (T, U) -> Void) -> (T, U) -> Void {
+            { work($0, $1); scheduleMirrorExport() }
+        }
+
+        return TreeActions(
+            newFolder: mirrored(newFolder),
+            newPage: mirrored(newPage),
+            newFromTemplate: mirrored { create(from: $0, in: insertionFolder) },
+            addPage: mirrored { folder in
                 let page = NoteTree.addPage(in: folder, context: context)
                 SidebarExpansion.setExpanded(true, for: folder.id)
                 selection = .page(page.id)
             },
-            addSubfolder: { folder in
+            addSubfolder: mirrored { folder in
                 let child = NoteTree.addFolder(in: folder, context: context)
                 SidebarExpansion.setExpanded(true, for: folder.id)
                 beginRename(.folder(child), startingEmpty: true)
             },
-            addFromTemplate: { template, folder in create(from: template, in: folder) },
-            move: move,
+            addFromTemplate: mirrored { template, folder in create(from: template, in: folder) },
+            move: { item, destination in
+                let moved = move(item, into: destination)
+                if moved { scheduleMirrorExport() }
+                return moved
+            },
             rename: beginRename,
-            setArchived: setArchived,
-            togglePinned: NoteTree.togglePinned,
+            setArchived: mirrored(setArchived),
+            togglePinned: mirrored(NoteTree.togglePinned),
             delete: { deleteTarget = $0 }
         )
     }
@@ -179,6 +196,7 @@ struct RootView: View {
         case nil: break
         }
         renameTarget = nil
+        scheduleMirrorExport()
     }
 
     private func commitDelete() {
@@ -193,6 +211,7 @@ struct RootView: View {
             break
         }
         deleteTarget = nil
+        scheduleMirrorExport()
     }
 
     private var renameIsPresented: Binding<Bool> {
