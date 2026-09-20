@@ -171,6 +171,13 @@ extension EditorController: WKScriptMessageHandler {
             else { return }
             insertImage(id: id)
 
+        case "requestPasteboardImage":
+            guard
+                let image = PasteboardImage.current(),
+                let id = onImagePasted?(image.data, image.mime, "screenshot")
+            else { return }
+            insertImage(id: id)
+
         case "slashCommand":
             break
 

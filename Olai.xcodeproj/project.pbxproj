@@ -23,10 +23,12 @@
 		CA4AE14565D9CEA3146F6C02 /* ScheduleTaskSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EB2328F1634504C6F755257 /* ScheduleTaskSheet.swift */; };
 		CA84B25DB86C8EB1DCCF85BE /* TaskScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCA66FCBCBF59E9685F7CB8 /* TaskScheduler.swift */; };
 		FAA409922064C7B1139A696D /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4359633DD856E081E1F34169 /* RootView.swift */; };
+		FD11DE009BF226C42F3C4091 /* PasteboardImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01CB9EBBC3BA55E366A61D76 /* PasteboardImage.swift */; };
 		FDE522E9ACBD1C0906BF3FE1 /* EditorController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92E723D1F71911CD23D33C62 /* EditorController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		01CB9EBBC3BA55E366A61D76 /* PasteboardImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasteboardImage.swift; sourceTree = "<group>"; };
 		0E64777A0E619A5DF8288349 /* editor.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = editor.html; sourceTree = "<group>"; };
 		0EB2328F1634504C6F755257 /* ScheduleTaskSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleTaskSheet.swift; sourceTree = "<group>"; };
 		1F72132FCF2501235935A088 /* Olai.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Olai.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -93,6 +95,7 @@
 				8B19871D04521AAB0C9D5708 /* EditorWebView.swift */,
 				3A73FE08BD20F369CB78582E /* OlaiSchemeHandler.swift */,
 				ADC9C75EE5A57412F76783F2 /* PageEditorView.swift */,
+				01CB9EBBC3BA55E366A61D76 /* PasteboardImage.swift */,
 			);
 			path = Editor;
 			sourceTree = "<group>";
@@ -233,6 +236,7 @@
 				455F465DA9DDEB684153DE0F /* OlaiModelContainer.swift in Sources */,
 				B8CB4BF0E14536659A6E2B41 /* OlaiSchemeHandler.swift in Sources */,
 				7905D6513D08A17E73CE9D55 /* PageEditorView.swift in Sources */,
+				FD11DE009BF226C42F3C4091 /* PasteboardImage.swift in Sources */,
 				FAA409922064C7B1139A696D /* RootView.swift in Sources */,
 				CA4AE14565D9CEA3146F6C02 /* ScheduleTaskSheet.swift in Sources */,
 				B341FEC01DE0B591B59A3C3B /* SidebarExpansion.swift in Sources */,

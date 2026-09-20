@@ -318,13 +318,35 @@ function imageFilesFrom(dataTransfer) {
     .filter(Boolean)
 }
 
+/** True when the clipboard holds an image but no file to read it from -- a screenshot,
+ *  or anything else copied as raw image data. The page cannot reach those bytes, so
+ *  Swift reads the pasteboard instead. Pastes carrying real text are left alone. */
+function isUnreadableImage(transfer) {
+  if (!transfer) return false
+
+  const types = Array.from(transfer.types ?? [])
+  const looksLikeImage =
+    types.some((type) => type.startsWith('image/')) ||
+    (transfer.getData('text/html') ?? '').includes('webkit-fake-url')
+
+  return looksLikeImage && (transfer.getData('text/plain') ?? '').trim() === ''
+}
+
 /** Takes an image out of a paste or drop before ProseMirror inserts it itself, which
- *  it would do with a blob URL that resolves to nothing once the page reloads. */
+ *  it would do with a URL that resolves to nothing once the page reloads. */
 function interceptImages(transfer) {
   const images = imageFilesFrom(transfer)
-  if (images.length === 0) return false
-  images.forEach(sendImageFile)
-  return true
+  if (images.length > 0) {
+    images.forEach(sendImageFile)
+    return true
+  }
+
+  if (isUnreadableImage(transfer)) {
+    post('requestPasteboardImage')
+    return true
+  }
+
+  return false
 }
 
 editor.setOptions({
