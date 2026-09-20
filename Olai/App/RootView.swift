@@ -9,19 +9,147 @@ enum SidebarSelection: Hashable {
     case page(UUID)
 }
 
+/// Owns the tree-level state: what is selected, and the create / rename / delete flows.
+///
+/// The toolbar hangs off the split view rather than the sidebar on purpose. A sidebar's
+/// toolbar region is only as wide as the sidebar, so items placed there are pushed into
+/// the window's overflow menu; from here they get the width of the whole window.
 struct RootView: View {
+    @Environment(\.modelContext) private var context
+    @Query private var allFolders: [Folder]
+    @Query private var allPages: [Page]
+
     @State private var selection: SidebarSelection?
+    @State private var renameTarget: TreeItem?
+    @State private var renameText: String = ""
+    @State private var deleteTarget: TreeItem?
 
     var body: some View {
         NavigationSplitView {
-            SidebarView(selection: $selection)
-                .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 340)
+            SidebarView(
+                selection: $selection,
+                onNewFolder: newFolder,
+                onNewPage: newPage,
+                onRename: beginRename,
+                onDelete: { deleteTarget = $0 }
+            )
+            .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 340)
         } detail: {
             DetailView(selection: selection)
         }
         #if os(macOS)
         .frame(minWidth: 720, minHeight: 440)
+        .toolbarBackground(.visible, for: .windowToolbar)
         #endif
+        // The window's own title, so it spans the whole title bar rather than belonging
+        // to the detail pane.
+        .navigationTitle("Olai")
+        #if os(macOS)
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+                NewItemButtons(newFolder: newFolder, newPage: newPage)
+            }
+        }
+        #endif
+        .alert("Rename", isPresented: renameIsPresented) {
+            TextField("Name", text: $renameText)
+            Button("Cancel", role: .cancel) { renameTarget = nil }
+            Button("Rename") { commitRename() }
+        }
+        .confirmationDialog(
+            deleteQuestion,
+            isPresented: deleteIsPresented,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) { commitDelete() }
+            Button("Cancel", role: .cancel) { deleteTarget = nil }
+        } message: {
+            if case .folder = deleteTarget {
+                Text("Its subfolders and pages are deleted too.")
+            }
+        }
+    }
+
+    // MARK: Creating
+
+    /// Where new items land: the selected folder, the folder holding the selected page,
+    /// or the top level.
+    private var insertionFolder: Folder? {
+        switch selection {
+        case let .folder(id):
+            return allFolders.first { $0.id == id }
+        case let .page(id):
+            return allPages.first { $0.id == id }?.folder
+        case nil:
+            return nil
+        }
+    }
+
+    private func newPage() {
+        let page = NoteTree.addPage(in: insertionFolder, context: context)
+        if let folder = insertionFolder {
+            SidebarExpansion.setExpanded(true, for: folder.id)
+        }
+        selection = .page(page.id)
+    }
+
+    /// Creates a folder and asks for its name straight away. The selection is left alone:
+    /// on iPhone, selecting it would push to the detail column and take the prompt with it.
+    private func newFolder() {
+        let folder = NoteTree.addFolder(in: insertionFolder, context: context)
+        if let parent = insertionFolder {
+            SidebarExpansion.setExpanded(true, for: parent.id)
+        }
+        beginRename(.folder(folder), startingEmpty: true)
+    }
+
+    // MARK: Renaming and deleting
+
+    private func beginRename(_ item: TreeItem, startingEmpty: Bool = false) {
+        switch item {
+        case let .folder(folder): renameText = startingEmpty ? "" : folder.name
+        case let .page(page): renameText = startingEmpty ? "" : page.title
+        }
+        renameTarget = item
+    }
+
+    private func commitRename() {
+        switch renameTarget {
+        case let .folder(folder): NoteTree.rename(folder, to: renameText)
+        case let .page(page): NoteTree.rename(page, to: renameText)
+        case nil: break
+        }
+        renameTarget = nil
+    }
+
+    private func commitDelete() {
+        switch deleteTarget {
+        case let .folder(folder):
+            if selection == .folder(folder.id) { selection = nil }
+            NoteTree.delete(folder, context: context)
+        case let .page(page):
+            if selection == .page(page.id) { selection = nil }
+            NoteTree.delete(page, context: context)
+        case nil:
+            break
+        }
+        deleteTarget = nil
+    }
+
+    private var renameIsPresented: Binding<Bool> {
+        Binding(get: { renameTarget != nil }, set: { if !$0 { renameTarget = nil } })
+    }
+
+    private var deleteIsPresented: Binding<Bool> {
+        Binding(get: { deleteTarget != nil }, set: { if !$0 { deleteTarget = nil } })
+    }
+
+    private var deleteQuestion: String {
+        switch deleteTarget {
+        case let .folder(folder): "Delete “\(folder.name)”?"
+        case let .page(page): "Delete “\(page.title)”?"
+        case nil: "Delete?"
+        }
     }
 }
 
@@ -58,7 +186,7 @@ private struct DetailView: View {
     }
 }
 
-/// Stand-in detail for a selected folder: what it holds, and a way in.
+/// Stand-in detail for a selected folder: what it holds.
 private struct FolderDetailView: View {
     @Bindable var folder: Folder
 
@@ -78,6 +206,33 @@ private struct FolderDetailView: View {
         .padding(.top, 20)
         .frame(maxWidth: EditorMetrics.columnWidth, alignment: .leading)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .navigationTitle(LocationTitle.of(folder.parent))
+        #if os(iOS)
+        .navigationTitle(folder.name)
+        #endif
+    }
+}
+
+/// The two creation buttons, shown in the window toolbar on macOS and in the sidebar's
+/// navigation bar on iPhone.
+struct NewItemButtons: View {
+    let newFolder: () -> Void
+    let newPage: () -> Void
+
+    var body: some View {
+        Button(action: newFolder) {
+            Label("New Folder", systemImage: "folder.badge.plus")
+            #if os(macOS)
+                .labelStyle(.titleAndIcon)
+            #endif
+        }
+        .help("New folder")
+
+        Button(action: newPage) {
+            Label("New Page", systemImage: "square.and.pencil")
+            #if os(macOS)
+                .labelStyle(.titleAndIcon)
+            #endif
+        }
+        .help("New page")
     }
 }

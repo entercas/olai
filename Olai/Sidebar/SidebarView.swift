@@ -6,14 +6,13 @@ import SwiftUI
 /// expansion is persisted; pages are leaves.
 struct SidebarView: View {
     @Binding var selection: SidebarSelection?
+    let onNewFolder: () -> Void
+    let onNewPage: () -> Void
+    let onRename: (TreeItem, Bool) -> Void
+    let onDelete: (TreeItem) -> Void
 
-    @Environment(\.modelContext) private var context
     @Query private var allFolders: [Folder]
     @Query private var allPages: [Page]
-
-    @State private var renameTarget: TreeItem?
-    @State private var renameText: String = ""
-    @State private var deleteTarget: TreeItem?
 
     private var rootFolders: [Folder] {
         allFolders.filter { $0.parent == nil && !$0.isArchived }.sorted(by: Folder.displayOrder)
@@ -23,19 +22,6 @@ struct SidebarView: View {
         allPages.filter { $0.folder == nil && !$0.isArchived }.sorted(by: Page.displayOrder)
     }
 
-    /// The folder new items land in: the selected folder, or the folder holding the
-    /// selected page, or the top level.
-    private var insertionFolder: Folder? {
-        switch selection {
-        case let .folder(id):
-            return allFolders.first { $0.id == id }
-        case let .page(id):
-            return allPages.first { $0.id == id }?.folder
-        case nil:
-            return nil
-        }
-    }
-
     var body: some View {
         List(selection: $selection) {
             ForEach(rootFolders) { folder in
@@ -43,150 +29,33 @@ struct SidebarView: View {
                     folder: folder,
                     allFolders: allFolders,
                     selection: $selection,
-                    onRename: beginRename,
-                    onDelete: { deleteTarget = $0 }
+                    onRename: onRename,
+                    onDelete: onDelete
                 )
             }
             ForEach(rootPages) { page in
                 PageRow(
                     page: page,
                     allFolders: allFolders,
-                    onRename: beginRename,
-                    onDelete: { deleteTarget = $0 }
+                    onRename: onRename,
+                    onDelete: onDelete
                 )
             }
         }
         .listStyle(.sidebar)
+        // Separates the tree from the window's title bar, which the sidebar would
+        // otherwise run straight into.
+        .safeAreaInset(edge: .top, spacing: 0) {
+            Divider()
+        }
+        #if os(iOS)
         .navigationTitle("Olai")
-        #if os(macOS)
-        // A sidebar's toolbar area is only as wide as the sidebar, so a second button
-        // there is pushed into the window's overflow menu however wide the window is.
-        // A footer keeps both in reach and reads like Finder's.
-        .safeAreaInset(edge: .bottom, spacing: 0) { newItemBar }
-        #else
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                Button { newFolder() } label: {
-                    Label("New Folder", systemImage: "folder.badge.plus")
-                }
-                .help("New folder")
-
-                Button { newPage() } label: {
-                    Label("New Page", systemImage: "square.and.pencil")
-                }
-                .help("New page")
+                NewItemButtons(newFolder: onNewFolder, newPage: onNewPage)
             }
         }
         #endif
-        .alert("Rename", isPresented: renameIsPresented) {
-            TextField("Name", text: $renameText)
-            Button("Cancel", role: .cancel) { renameTarget = nil }
-            Button("Rename") { commitRename() }
-        }
-        .confirmationDialog(
-            deleteQuestion,
-            isPresented: deleteIsPresented,
-            titleVisibility: .visible
-        ) {
-            Button("Delete", role: .destructive) { commitDelete() }
-            Button("Cancel", role: .cancel) { deleteTarget = nil }
-        } message: {
-            if case .folder = deleteTarget {
-                Text("Its subfolders and pages are deleted too.")
-            }
-        }
-    }
-
-    #if os(macOS)
-    private var newItemBar: some View {
-        HStack(spacing: 2) {
-            Button { newFolder() } label: {
-                Label("New Folder", systemImage: "folder.badge.plus")
-            }
-            .help("New folder")
-
-            Button { newPage() } label: {
-                Label("New Page", systemImage: "square.and.pencil")
-            }
-            .help("New page")
-
-            Spacer(minLength: 0)
-        }
-        .buttonStyle(.accessoryBar)
-        .font(.subheadline)
-        .padding(.horizontal, 6)
-        .padding(.vertical, 6)
-        .background(.bar)
-    }
-    #endif
-
-    // MARK: Actions
-
-    private func newPage() {
-        let page = NoteTree.addPage(in: insertionFolder, context: context)
-        if let folder = insertionFolder {
-            SidebarExpansion.setExpanded(true, for: folder.id)
-        }
-        selection = .page(page.id)
-    }
-
-    /// Creates a folder and asks for its name straight away. The selection is left alone:
-    /// on iPhone, selecting it would push to the detail column and take the prompt with it.
-    private func newFolder() {
-        let folder = NoteTree.addFolder(in: insertionFolder, context: context)
-        if let parent = insertionFolder {
-            SidebarExpansion.setExpanded(true, for: parent.id)
-        }
-        beginRename(.folder(folder), startingEmpty: true)
-    }
-
-    private func beginRename(_ item: TreeItem, startingEmpty: Bool = false) {
-        switch item {
-        case let .folder(folder): renameText = startingEmpty ? "" : folder.name
-        case let .page(page): renameText = startingEmpty ? "" : page.title
-        }
-        renameTarget = item
-    }
-
-    private func commitRename() {
-        switch renameTarget {
-        case let .folder(folder): NoteTree.rename(folder, to: renameText)
-        case let .page(page): NoteTree.rename(page, to: renameText)
-        case nil: break
-        }
-        renameTarget = nil
-    }
-
-    private func commitDelete() {
-        switch deleteTarget {
-        case let .folder(folder):
-            if selection == .folder(folder.id) { selection = nil }
-            NoteTree.delete(folder, context: context)
-        case let .page(page):
-            if selection == .page(page.id) { selection = nil }
-            NoteTree.delete(page, context: context)
-        case nil:
-            break
-        }
-        deleteTarget = nil
-    }
-
-    // MARK: Presentation bindings
-
-    private var renameIsPresented: Binding<Bool> {
-        Binding(get: { renameTarget != nil }, set: { if !$0 { renameTarget = nil } })
-    }
-
-    private var deleteIsPresented: Binding<Bool> {
-        Binding(get: { deleteTarget != nil }, set: { if !$0 { deleteTarget = nil } })
-    }
-
-    private var deleteQuestion: String {
-        switch deleteTarget {
-        case let .folder(folder): "Delete “\(folder.name)”?"
-        case let .page(page): "Delete “\(page.title)”?"
-        case nil: "Delete?"
-        }
     }
 }
 

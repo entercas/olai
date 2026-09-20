@@ -27,7 +27,7 @@ struct PageEditorView: View {
                     .submitLabel(.done)
                 #endif
 
-                Text("Edited \(page.updatedAt.formatted(.relative(presentation: .named)))")
+                Text(caption)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -51,8 +51,8 @@ struct PageEditorView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         // The document's own title is the field above, so the toolbar shows where the
         // page lives instead of repeating it.
-        .navigationTitle(LocationTitle.of(page.folder))
         #if os(iOS)
+        .navigationTitle(LocationTitle.of(page.folder))
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .onAppear {
@@ -74,6 +74,17 @@ struct PageEditorView: View {
                 page.updatedAt = Date()
             }
         }
+    }
+
+    /// Where the page lives and when it last changed. On iPhone the location is already
+    /// in the navigation bar, so the caption there is just the timestamp.
+    private var caption: String {
+        let edited = "Edited \(page.updatedAt.formatted(.relative(presentation: .named)))"
+        #if os(macOS)
+        return "\(LocationTitle.of(page.folder)) · \(edited)"
+        #else
+        return edited
+        #endif
     }
 
     /// Waits out the debounce window, then applies `save` unless the field changed again
