@@ -344,6 +344,23 @@ function setMindMap(visible) {
 
 let dictation = null // { from, to, text }
 
+/** Whether `next` is a revision of `previous` rather than something new.
+ *
+ *  A revision refines the end of what was said -- "the legacy" becomes "the latency" --
+ *  and keeps the beginning. A fresh utterance shares nothing. Without this, a second
+ *  sentence spoken after a pause overwrote the first, because the recogniser starts its
+ *  transcript over and the range still covered the earlier text. */
+function continuesUtterance(previous, next) {
+  if (!previous) return true
+
+  const a = previous.trim().toLowerCase()
+  const b = next.trim().toLowerCase()
+  if (!a || !b) return true
+
+  const shared = Math.min(8, a.length, b.length)
+  return a.slice(0, shared) === b.slice(0, shared)
+}
+
 /** Drops the range if the text there is no longer ours -- the caret moved, or the
  *  document was edited while dictating. */
 function dictationRangeIsIntact() {
@@ -355,6 +372,7 @@ function dictationRangeIsIntact() {
 
 function replaceDictation(spoken) {
   if (!dictationRangeIsIntact()) dictation = null
+  if (dictation && !continuesUtterance(dictation.spoken, spoken)) dictation = null
 
   if (!dictation) {
     // Focus first: the caret has to exist before its position means anything.
@@ -362,7 +380,7 @@ function replaceDictation(spoken) {
     const from = editor.state.selection.to
     // A block boundary counts as whitespace, so a new paragraph needs no space.
     const before = editor.state.doc.textBetween(Math.max(from - 1, 0), from, ' ', ' ')
-    dictation = { from, to: from, text: '', separator: before.trim() ? ' ' : '' }
+    dictation = { from, to: from, text: '', spoken: '', separator: before.trim() ? ' ' : '' }
   }
 
   const text = dictation.separator + spoken
@@ -371,7 +389,7 @@ function replaceDictation(spoken) {
     .insertContentAt({ from: dictation.from, to: dictation.to }, text)
     .run()
 
-  dictation = { ...dictation, to: dictation.from + text.length, text }
+  dictation = { ...dictation, to: dictation.from + text.length, text, spoken }
 }
 
 /** Everything Swift can call. */

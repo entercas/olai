@@ -62,14 +62,32 @@ final class DictationService {
     }
 
     func stop() {
-        engine.inputNode.removeTap(onBus: 0)
+        endRecognition()
         if engine.isRunning { engine.stop() }
+        if state.isRunning { state = .idle }
+        onFinish?()
+    }
+
+    private func endRecognition() {
+        engine.inputNode.removeTap(onBus: 0)
         request?.endAudio()
         task?.cancel()
         request = nil
         task = nil
-        if state.isRunning { state = .idle }
-        onFinish?()
+    }
+
+    /// A recognition task ends with the utterance it was listening to. Dictation is
+    /// meant to keep going, so the next utterance gets a task of its own -- otherwise
+    /// the first pause ends dictation and nothing said afterwards is heard.
+    private func beginNextUtterance() {
+        guard state == .listening, let recognizer else { return }
+        endRecognition()
+        do {
+            try beginListening(with: recognizer)
+        } catch {
+            stop()
+            state = .failed(error.localizedDescription)
+        }
     }
 
     // MARK: Plumbing
@@ -158,6 +176,10 @@ final class DictationService {
             onTranscript?(transcript, isFinal)
         }
         // A recognition error ends the utterance; the user can start again.
-        if failed { stop() }
+        if failed {
+            stop()
+            return
+        }
+        if isFinal { beginNextUtterance() }
     }
 }
