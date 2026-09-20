@@ -1,0 +1,10 @@
+.DS_Store
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+.swiftpm/
+Editor/node_modules/
+__pycache__/
+.venv/
+.build/

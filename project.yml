@@ -1,0 +1,65 @@
+name: Olai
+options:
+  bundleIdPrefix: com.entercas
+  deploymentTarget:
+    macOS: "15.0"
+    iOS: "18.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+packages:
+  OlaiCore:
+    path: OlaiCore
+
+settings:
+  base:
+    DEVELOPMENT_TEAM: YQSS8GQ6Y4
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+targets:
+  Olai:
+    type: application
+    supportedDestinations: [macOS, iOS]
+    deploymentTarget:
+      macOS: "15.0"
+      iOS: "18.0"
+    sources:
+      - path: Olai
+        excludes:
+          - "Info-*.plist"
+          - "*.entitlements"
+    dependencies:
+      - package: OlaiCore
+        product: OlaiCore
+    settings:
+      base:
+        PRODUCT_NAME: Olai
+        PRODUCT_BUNDLE_IDENTIFIER: com.entercas.olai
+        GENERATE_INFOPLIST_FILE: NO
+        ENABLE_PREVIEWS: YES
+        "INFOPLIST_FILE[sdk=macosx*]": Olai/Info-macOS.plist
+        "INFOPLIST_FILE[sdk=iphoneos*]": Olai/Info-iOS.plist
+        "INFOPLIST_FILE[sdk=iphonesimulator*]": Olai/Info-iOS.plist
+        "CODE_SIGN_ENTITLEMENTS[sdk=macosx*]": Olai/Olai-macOS.entitlements
+        "CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]": Olai/Olai-iOS.entitlements
+        "CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]": Olai/Olai-iOS.entitlements
+        "INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphone*]": NO
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: NO
+        SWIFT_EMIT_LOC_STRINGS: YES
+
+schemes:
+  Olai:
+    build:
+      targets:
+        Olai: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+    archive:
+      config: Release
