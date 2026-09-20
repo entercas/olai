@@ -123,8 +123,8 @@ struct PageEditorView: View {
             store(data: data, mime: mime, name: name)
         }
 
-        dictation.onTranscript = { text, isFinal in
-            controller.setDictationText(text)
+        dictation.onTranscript = { text, utterance, isFinal in
+            controller.setDictationText(text, utterance: utterance)
             if isFinal { controller.endDictation() }
         }
         dictation.onFinish = { controller.endDictation() }

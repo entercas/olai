@@ -89,10 +89,11 @@ final class EditorController: NSObject {
         evaluate("window.olai.insertImage({id: '\(id.uuidString)'})")
     }
 
-    /// Rewrites the in-progress dictation rather than appending to it.
-    func setDictationText(_ text: String) {
+    /// Rewrites the in-progress dictation rather than appending to it. `utterance`
+    /// identifies which run of speech the text belongs to.
+    func setDictationText(_ text: String, utterance: Int) {
         guard let encoded = jsString(text) else { return }
-        evaluate("window.olai.setDictationText({text: \(encoded)})")
+        evaluate("window.olai.setDictationText({text: \(encoded), utterance: \(utterance)})")
     }
 
     func endDictation() {

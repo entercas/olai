@@ -21,10 +21,11 @@ final class DictationService {
 
     private(set) var state: State = .idle
 
-    /// The whole utterance as currently understood, and whether the recogniser is done
-    /// with it. Recognition revises what it has already reported, so this is the text to
-    /// show, not an increment to append.
-    var onTranscript: ((String, Bool) -> Void)?
+    /// The whole utterance as currently understood, which utterance it is, and whether
+    /// the recogniser is done with it. Recognition revises what it has already reported,
+    /// so this is the text to show, not an increment to append; the number says which
+    /// text it replaces, since one recognition task is one utterance.
+    var onTranscript: ((String, Int, Bool) -> Void)?
 
     /// Dictation has ended, however it ended.
     var onFinish: (() -> Void)?
@@ -33,6 +34,9 @@ final class DictationService {
     @ObservationIgnored private let engine = AVAudioEngine()
     @ObservationIgnored private var request: SFSpeechAudioBufferRecognitionRequest?
     @ObservationIgnored private var task: SFSpeechRecognitionTask?
+    /// Bumped for every recognition task, so the editor can tell a revision of the
+    /// current utterance from the start of the next one.
+    @ObservationIgnored private var utterance = 0
 
     func toggle() async {
         state.isRunning ? stop() : await start()
@@ -125,6 +129,8 @@ final class DictationService {
         try session.setActive(true, options: .notifyOthersOnDeactivation)
         #endif
 
+        utterance += 1
+
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
         request.requiresOnDeviceRecognition = true
@@ -133,7 +139,12 @@ final class DictationService {
         self.request = request
 
         try Self.startCapturing(with: engine, into: request)
-        task = Self.startRecognizing(with: recognizer, request: request, reporting: self)
+        task = Self.startRecognizing(
+            with: recognizer,
+            request: request,
+            utterance: utterance,
+            reporting: self
+        )
     }
 
     /// Installs the microphone tap. Written here, outside the actor, because the tap
@@ -157,6 +168,7 @@ final class DictationService {
     private nonisolated static func startRecognizing(
         with recognizer: SFSpeechRecognizer,
         request: SFSpeechAudioBufferRecognitionRequest,
+        utterance: Int,
         reporting service: DictationService
     ) -> SFSpeechRecognitionTask {
         nonisolated(unsafe) let target = service
@@ -166,14 +178,19 @@ final class DictationService {
             let failed = error != nil
 
             Task { @MainActor in
-                target.receive(transcript: transcript, isFinal: isFinal, failed: failed)
+                target.receive(
+                    transcript: transcript,
+                    utterance: utterance,
+                    isFinal: isFinal,
+                    failed: failed
+                )
             }
         }
     }
 
-    private func receive(transcript: String?, isFinal: Bool, failed: Bool) {
+    private func receive(transcript: String?, utterance: Int, isFinal: Bool, failed: Bool) {
         if let transcript {
-            onTranscript?(transcript, isFinal)
+            onTranscript?(transcript, utterance, isFinal)
         }
         // A recognition error ends the utterance; the user can start again.
         if failed {

@@ -344,23 +344,6 @@ function setMindMap(visible) {
 
 let dictation = null // { from, to, text }
 
-/** Whether `next` is a revision of `previous` rather than something new.
- *
- *  A revision refines the end of what was said -- "the legacy" becomes "the latency" --
- *  and keeps the beginning. A fresh utterance shares nothing. Without this, a second
- *  sentence spoken after a pause overwrote the first, because the recogniser starts its
- *  transcript over and the range still covered the earlier text. */
-function continuesUtterance(previous, next) {
-  if (!previous) return true
-
-  const a = previous.trim().toLowerCase()
-  const b = next.trim().toLowerCase()
-  if (!a || !b) return true
-
-  const shared = Math.min(8, a.length, b.length)
-  return a.slice(0, shared) === b.slice(0, shared)
-}
-
 /** Drops the range if the text there is no longer ours -- the caret moved, or the
  *  document was edited while dictating. */
 function dictationRangeIsIntact() {
@@ -370,9 +353,15 @@ function dictationRangeIsIntact() {
   return doc.textBetween(dictation.from, dictation.to, '', '') === dictation.text
 }
 
-function replaceDictation(spoken) {
+/** Rewrites the current utterance in place.
+ *
+ *  Which utterance a result belongs to comes from Swift, which starts a new recognition
+ *  task for each one. Guessing it here from the text does not work: the recogniser
+ *  revises the opening words as readily as the closing ones -- "He is a" becomes "How
+ *  is the" -- so a revision is indistinguishable from a new sentence by looking at it. */
+function replaceDictation(spoken, utterance) {
+  if (dictation && dictation.utterance !== utterance) dictation = null
   if (!dictationRangeIsIntact()) dictation = null
-  if (dictation && !continuesUtterance(dictation.spoken, spoken)) dictation = null
 
   if (!dictation) {
     // Focus first: the caret has to exist before its position means anything.
@@ -380,7 +369,13 @@ function replaceDictation(spoken) {
     const from = editor.state.selection.to
     // A block boundary counts as whitespace, so a new paragraph needs no space.
     const before = editor.state.doc.textBetween(Math.max(from - 1, 0), from, ' ', ' ')
-    dictation = { from, to: from, text: '', spoken: '', separator: before.trim() ? ' ' : '' }
+    dictation = {
+      from,
+      to: from,
+      text: '',
+      utterance,
+      separator: before.trim() ? ' ' : '',
+    }
   }
 
   const text = dictation.separator + spoken
@@ -389,7 +384,7 @@ function replaceDictation(spoken) {
     .insertContentAt({ from: dictation.from, to: dictation.to }, text)
     .run()
 
-  dictation = { ...dictation, to: dictation.from + text.length, text, spoken }
+  dictation = { ...dictation, to: dictation.from + text.length, text }
 }
 
 /** Everything Swift can call. */
@@ -422,10 +417,10 @@ window.olai = {
   },
 
   /** Rewrites what is being dictated, in place. */
-  setDictationText({ text }) {
+  setDictationText({ text, utterance }) {
     // No sendState here: the edit itself fires onUpdate, which reports state. Posting
     // twice per partial result only adds work between speaking and seeing the words.
-    replaceDictation(text ?? '')
+    replaceDictation(text ?? '', utterance ?? 0)
   },
 
   /** Ends the utterance: the next one starts its own range. */
