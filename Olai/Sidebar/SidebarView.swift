@@ -56,15 +56,19 @@ struct SidebarView: View {
                 )
             }
         }
+        .listStyle(.sidebar)
         .navigationTitle("Olai")
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Menu {
-                    Button("New Page") { newPage() }
-                    Button("New Folder") { newFolder() }
-                } label: {
-                    Label("New", systemImage: "plus")
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button { newFolder() } label: {
+                    Label("New Folder", systemImage: "folder.badge.plus")
                 }
+                .help("New folder")
+
+                Button { newPage() } label: {
+                    Label("New Page", systemImage: "square.and.pencil")
+                }
+                .help("New page")
             }
         }
         .alert("Rename", isPresented: renameIsPresented) {
@@ -206,26 +210,55 @@ private struct FolderDisclosure: View {
         } label: {
             // The menu hangs off the label, not the DisclosureGroup: attached to the
             // group it would also cover every child row inside it.
-            Label(folder.name, systemImage: "folder")
-                .lineLimit(1)
-                .contextMenu { menu }
+            HStack(spacing: 4) {
+                Label(folder.name, systemImage: "folder")
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer(minLength: 2)
+                addMenu
+            }
+            .contextMenu { menu }
         }
         .tag(SidebarSelection.folder(folder.id))
+    }
+
+    /// The row's own "+": creates inside *this* folder, whatever is selected elsewhere.
+    private var addMenu: some View {
+        Menu {
+            Button("New Page", systemImage: "square.and.pencil") { addPage() }
+            Button("New Subfolder", systemImage: "folder.badge.plus") { addSubfolder() }
+        } label: {
+            Image(systemName: "plus")
+                .font(.caption.weight(.semibold))
+                .frame(width: 20, height: 20)
+                .contentShape(.rect)
+        }
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .foregroundStyle(.secondary)
+        .help("Add inside “\(folder.name)”")
+        #if os(macOS)
+        .menuStyle(.borderlessButton)
+        #endif
+    }
+
+    private func addPage() {
+        let page = NoteTree.addPage(in: folder, context: context)
+        isExpanded = true
+        selection = .page(page.id)
+    }
+
+    private func addSubfolder() {
+        let child = NoteTree.addFolder(in: folder, context: context)
+        isExpanded = true
+        onRename(.folder(child), true)
     }
 
     @ViewBuilder
     private var menu: some View {
         Group {
-            Button("New Page") {
-                let page = NoteTree.addPage(in: folder, context: context)
-                isExpanded = true
-                selection = .page(page.id)
-            }
-            Button("New Subfolder") {
-                let child = NoteTree.addFolder(in: folder, context: context)
-                isExpanded = true
-                onRename(.folder(child), true)
-            }
+            Button("New Page") { addPage() }
+            Button("New Subfolder") { addSubfolder() }
             Divider()
             Button("Rename…") { onRename(.folder(folder), false) }
             MoveToMenu(allFolders: allFolders) { destination in

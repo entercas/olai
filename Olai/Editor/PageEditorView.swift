@@ -16,26 +16,39 @@ struct PageEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            TextField("Title", text: $title)
-                .textFieldStyle(.plain)
-                .font(.title2.weight(.semibold))
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, 8)
-            #if os(iOS)
-                .submitLabel(.done)
-            #endif
+            VStack(alignment: .leading, spacing: 3) {
+                TextField("Title", text: $title)
+                    .textFieldStyle(.plain)
+                    .font(.title2.weight(.semibold))
+                #if os(iOS)
+                    .submitLabel(.done)
+                #endif
+
+                Text("Edited \(page.updatedAt.formatted(.relative(presentation: .named)))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, EditorMetrics.gutter)
+            .padding(.top, 20)
+            .padding(.bottom, 12)
 
             Divider()
+                .padding(.horizontal, EditorMetrics.gutter)
 
             TextEditor(text: $text)
+                .textEditorStyle(.plain)
                 .font(.body)
+                .lineSpacing(2)
                 .scrollContentBackground(.hidden)
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
+                .padding(.horizontal, EditorMetrics.gutter)
+                .padding(.top, 14)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .navigationTitle(page.title.isEmpty ? "Untitled" : page.title)
+        // A measured column: full width is unreadable on a wide Mac window.
+        .frame(maxWidth: EditorMetrics.columnWidth, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        // The document's own title is the field above, so the toolbar shows where the
+        // page lives instead of repeating it.
+        .navigationTitle(LocationTitle.of(page.folder))
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
@@ -67,5 +80,18 @@ struct PageEditorView: View {
         try? await Task.sleep(for: .milliseconds(500))
         guard !Task.isCancelled else { return }
         save()
+    }
+}
+
+enum EditorMetrics {
+    static let gutter: CGFloat = 28
+    static let columnWidth: CGFloat = 860
+}
+
+/// Where an item sits in the tree, for the detail pane's title.
+enum LocationTitle {
+    static func of(_ folder: Folder?) -> String {
+        guard let folder else { return "Olai" }
+        return folder.pathComponents.joined(separator: " / ")
     }
 }

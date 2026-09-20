@@ -15,10 +15,13 @@ struct RootView: View {
     var body: some View {
         NavigationSplitView {
             SidebarView(selection: $selection)
-                .navigationSplitViewColumnWidth(min: 220, ideal: 260)
+                .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 340)
         } detail: {
             DetailView(selection: selection)
         }
+        #if os(macOS)
+        .frame(minWidth: 720, minHeight: 440)
+        #endif
     }
 }
 
@@ -63,15 +66,18 @@ private struct FolderDetailView: View {
         let pages = folder.sortedPages.filter { !$0.isArchived }
         let subfolders = folder.sortedChildren.filter { !$0.isArchived }
 
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(folder.name)
-                .font(.largeTitle)
+                .font(.title2.weight(.semibold))
             Text("\(subfolders.count) folder\(subfolders.count == 1 ? "" : "s") · \(pages.count) page\(pages.count == 1 ? "" : "s")")
+                .font(.caption)
                 .foregroundStyle(.secondary)
-            Spacer()
+            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(24)
-        .navigationTitle(folder.name)
+        .padding(.horizontal, EditorMetrics.gutter)
+        .padding(.top, 20)
+        .frame(maxWidth: EditorMetrics.columnWidth, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .navigationTitle(LocationTitle.of(folder.parent))
     }
 }

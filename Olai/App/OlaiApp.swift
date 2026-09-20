@@ -11,6 +11,7 @@ struct OlaiApp: App {
         }
         .modelContainer(modelContainer)
         #if os(macOS)
+        .defaultSize(width: 1040, height: 700)
         .commands {
             SidebarCommands()
         }

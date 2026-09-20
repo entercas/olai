@@ -24,5 +24,9 @@
 	<string></string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<!-- Opts the Mac app out of the macOS 26 design, whose split-view sidebar floats as
+	     an inset panel with a drop shadow. Remove this key to take the new look. -->
+	<key>UIDesignRequiresCompatibility</key>
+	<true/>
 </dict>
 </plist>
