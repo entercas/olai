@@ -1,0 +1,26 @@
+{
+  "name": "olai-editor",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "vite build && cp dist/index.html ../Olai/Resources/editor.html",
+    "dev": "vite"
+  },
+  "dependencies": {
+    "@tiptap/core": "2.27.3",
+    "@tiptap/extension-highlight": "2.27.3",
+    "@tiptap/extension-image": "2.27.3",
+    "@tiptap/extension-link": "2.27.3",
+    "@tiptap/extension-placeholder": "2.27.3",
+    "@tiptap/extension-task-item": "2.27.3",
+    "@tiptap/extension-task-list": "2.27.3",
+    "@tiptap/extension-underline": "2.27.3",
+    "@tiptap/pm": "2.27.3",
+    "@tiptap/starter-kit": "2.27.3"
+  },
+  "devDependencies": {
+    "vite": "6.0.11",
+    "vite-plugin-singlefile": "2.1.0"
+  }
+}

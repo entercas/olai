@@ -28,6 +28,8 @@
 	     an inset panel with a drop shadow. Remove this key to take the new look. -->
 	<key>UIDesignRequiresCompatibility</key>
 	<true/>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Olai schedules the tasks you create in a page as reminders, so they can notify you when they are due.</string>
 	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>

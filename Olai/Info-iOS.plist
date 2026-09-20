@@ -41,6 +41,8 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Olai schedules the tasks you create in a page as reminders, so they can notify you when they are due.</string>
 	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>

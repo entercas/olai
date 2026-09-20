@@ -7,25 +7,39 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		02FBE5B39DCB4F6857E88518 /* EditorToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 278B5D81625AFC5C3AA59CC5 /* EditorToolbar.swift */; };
+		1470552D5BEE7C4593BD7EDE /* editor.html in Resources */ = {isa = PBXBuildFile; fileRef = 0E64777A0E619A5DF8288349 /* editor.html */; };
 		27D230B2756FEE4915F2EA15 /* OlaiCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3DF7DDD6CB4ADD58C6D03734 /* OlaiCore */; };
 		3649C9D2874EBC723419974C /* DraggedItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2AE67FA1FA45839EE0FF71B /* DraggedItem.swift */; };
+		407055C1FD60D25CE18C8C91 /* EditorWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B19871D04521AAB0C9D5708 /* EditorWebView.swift */; };
 		455F465DA9DDEB684153DE0F /* OlaiModelContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC45749CCA0B22FFD810C16B /* OlaiModelContainer.swift */; };
 		507EA9CE2841AD5187B1AD07 /* OlaiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F94C1D7CE0859841ACE0F22 /* OlaiApp.swift */; };
 		5E2C2BAF949E3D4D54D5FFAA /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD069D6A33E2AF7FD31AB86 /* SidebarView.swift */; };
 		5FF096350C03DC621FDE10FD /* NoteTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BD4C92D8D37BDAF3AA9B022 /* NoteTree.swift */; };
 		7905D6513D08A17E73CE9D55 /* PageEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADC9C75EE5A57412F76783F2 /* PageEditorView.swift */; };
 		B341FEC01DE0B591B59A3C3B /* SidebarExpansion.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8E2A25E0D44A18FB5420ACF /* SidebarExpansion.swift */; };
+		B8CB4BF0E14536659A6E2B41 /* OlaiSchemeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A73FE08BD20F369CB78582E /* OlaiSchemeHandler.swift */; };
 		BAD537635B707C7572E9D832 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4BFF3A26C9354908CA874DA4 /* Assets.xcassets */; };
+		CA4AE14565D9CEA3146F6C02 /* ScheduleTaskSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EB2328F1634504C6F755257 /* ScheduleTaskSheet.swift */; };
+		CA84B25DB86C8EB1DCCF85BE /* TaskScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCA66FCBCBF59E9685F7CB8 /* TaskScheduler.swift */; };
 		FAA409922064C7B1139A696D /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4359633DD856E081E1F34169 /* RootView.swift */; };
+		FDE522E9ACBD1C0906BF3FE1 /* EditorController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92E723D1F71911CD23D33C62 /* EditorController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0E64777A0E619A5DF8288349 /* editor.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = editor.html; sourceTree = "<group>"; };
+		0EB2328F1634504C6F755257 /* ScheduleTaskSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleTaskSheet.swift; sourceTree = "<group>"; };
 		1F72132FCF2501235935A088 /* Olai.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Olai.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		278B5D81625AFC5C3AA59CC5 /* EditorToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorToolbar.swift; sourceTree = "<group>"; };
+		3A73FE08BD20F369CB78582E /* OlaiSchemeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OlaiSchemeHandler.swift; sourceTree = "<group>"; };
 		4359633DD856E081E1F34169 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		4BFF3A26C9354908CA874DA4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		4F94C1D7CE0859841ACE0F22 /* OlaiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OlaiApp.swift; sourceTree = "<group>"; };
 		6BD4C92D8D37BDAF3AA9B022 /* NoteTree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteTree.swift; sourceTree = "<group>"; };
+		7BCA66FCBCBF59E9685F7CB8 /* TaskScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskScheduler.swift; sourceTree = "<group>"; };
+		8B19871D04521AAB0C9D5708 /* EditorWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorWebView.swift; sourceTree = "<group>"; };
 		8FD069D6A33E2AF7FD31AB86 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
+		92E723D1F71911CD23D33C62 /* EditorController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorController.swift; sourceTree = "<group>"; };
 		ADC9C75EE5A57412F76783F2 /* PageEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageEditorView.swift; sourceTree = "<group>"; };
 		B8E2A25E0D44A18FB5420ACF /* SidebarExpansion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarExpansion.swift; sourceTree = "<group>"; };
 		C2AE67FA1FA45839EE0FF71B /* DraggedItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraggedItem.swift; sourceTree = "<group>"; };
@@ -66,6 +80,7 @@
 			isa = PBXGroup;
 			children = (
 				4BFF3A26C9354908CA874DA4 /* Assets.xcassets */,
+				0E64777A0E619A5DF8288349 /* editor.html */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -73,6 +88,10 @@
 		A4FE6B0075E681C401C31248 /* Editor */ = {
 			isa = PBXGroup;
 			children = (
+				92E723D1F71911CD23D33C62 /* EditorController.swift */,
+				278B5D81625AFC5C3AA59CC5 /* EditorToolbar.swift */,
+				8B19871D04521AAB0C9D5708 /* EditorWebView.swift */,
+				3A73FE08BD20F369CB78582E /* OlaiSchemeHandler.swift */,
 				ADC9C75EE5A57412F76783F2 /* PageEditorView.swift */,
 			);
 			path = Editor;
@@ -101,11 +120,21 @@
 			isa = PBXGroup;
 			children = (
 				CED13A25F3612F380459F5D9 /* App */,
+				C2C884433F7609940572511F /* Calendar */,
 				A4FE6B0075E681C401C31248 /* Editor */,
 				620B95539A3522E6A2A34EA1 /* Resources */,
 				B3DA3A0428518017E346E110 /* Sidebar */,
 			);
 			path = Olai;
+			sourceTree = "<group>";
+		};
+		C2C884433F7609940572511F /* Calendar */ = {
+			isa = PBXGroup;
+			children = (
+				0EB2328F1634504C6F755257 /* ScheduleTaskSheet.swift */,
+				7BCA66FCBCBF59E9685F7CB8 /* TaskScheduler.swift */,
+			);
+			path = Calendar;
 			sourceTree = "<group>";
 		};
 		CED13A25F3612F380459F5D9 /* App */ = {
@@ -184,6 +213,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BAD537635B707C7572E9D832 /* Assets.xcassets in Resources */,
+				1470552D5BEE7C4593BD7EDE /* editor.html in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -195,13 +225,19 @@
 			buildActionMask = 2147483647;
 			files = (
 				3649C9D2874EBC723419974C /* DraggedItem.swift in Sources */,
+				FDE522E9ACBD1C0906BF3FE1 /* EditorController.swift in Sources */,
+				02FBE5B39DCB4F6857E88518 /* EditorToolbar.swift in Sources */,
+				407055C1FD60D25CE18C8C91 /* EditorWebView.swift in Sources */,
 				5FF096350C03DC621FDE10FD /* NoteTree.swift in Sources */,
 				507EA9CE2841AD5187B1AD07 /* OlaiApp.swift in Sources */,
 				455F465DA9DDEB684153DE0F /* OlaiModelContainer.swift in Sources */,
+				B8CB4BF0E14536659A6E2B41 /* OlaiSchemeHandler.swift in Sources */,
 				7905D6513D08A17E73CE9D55 /* PageEditorView.swift in Sources */,
 				FAA409922064C7B1139A696D /* RootView.swift in Sources */,
+				CA4AE14565D9CEA3146F6C02 /* ScheduleTaskSheet.swift in Sources */,
 				B341FEC01DE0B591B59A3C3B /* SidebarExpansion.swift in Sources */,
 				5E2C2BAF949E3D4D54D5FFAA /* SidebarView.swift in Sources */,
+				CA84B25DB86C8EB1DCCF85BE /* TaskScheduler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

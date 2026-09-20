@@ -1,23 +1,31 @@
 import OlaiCore
 import SwiftData
 import SwiftUI
+import UniformTypeIdentifiers
+#if os(iOS)
+import PhotosUI
+#endif
 
-/// Phase 1 editor: a title field and a plain `TextEditor`. The body is still written as
-/// a block document so the web editor can open these pages unchanged in phase 2.
+/// A page: its title, and the TipTap editor in a web view below it.
 ///
-/// Writes are debounced 500 ms after the last keystroke, matching the debounce the
-/// editor bridge will use.
+/// Swift keeps storage, images and scheduling; the web view keeps the document. Saves
+/// arrive from the bridge already debounced 500 ms after the last keystroke.
 struct PageEditorView: View {
     @Bindable var page: Page
 
+    @Environment(\.modelContext) private var context
+    @Environment(\.colorScheme) private var colorScheme
+
+    @State private var controller = EditorController()
     @State private var title: String = ""
-    @State private var text: String = ""
     @State private var didLoad = false
+    @State private var isSchedulePresented = false
+    @State private var isImporterPresented = false
+    #if os(iOS)
+    @State private var photoItem: PhotosPickerItem?
+    #endif
 
     var body: some View {
-        // The column is constrained by layout, never by measured geometry: an inset
-        // computed from a GeometryReader goes stale mid-resize and can exceed the pane,
-        // squeezing the text to a single character per line.
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 3) {
                 TextField("Title", text: $title)
@@ -35,49 +43,102 @@ struct PageEditorView: View {
             .padding(.top, 20)
             .padding(.bottom, 12)
 
-            Divider()
-                .padding(.horizontal, EditorMetrics.gutter)
+            EditorToolbar(
+                controller: controller,
+                onInsertImage: { isImporterPresented = true },
+                onScheduleTask: { isSchedulePresented = true }
+            )
 
-            TextEditor(text: $text)
-                .textEditorStyle(.plain)
-                .font(.body)
-                .lineSpacing(2)
-                .scrollContentBackground(.hidden)
-                .safeAreaPadding(.horizontal, EditorMetrics.gutter)
-                .safeAreaPadding(.vertical, 14)
+            Divider()
+
+            EditorWebView(controller: controller, container: context.container)
+                .padding(.horizontal, EditorMetrics.gutter - 4)
         }
-        // Narrower of the pane and a readable column, centred in the pane.
         .frame(maxWidth: EditorMetrics.columnWidth, alignment: .leading)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        // The document's own title is the field above, so the toolbar shows where the
-        // page lives instead of repeating it.
         #if os(iOS)
         .navigationTitle(LocationTitle.of(page.folder))
         .navigationBarTitleDisplayMode(.inline)
         #endif
-        .onAppear {
-            guard !didLoad else { return }
-            title = page.title
-            text = page.bodyText
-            didLoad = true
+        .onAppear(perform: load)
+        .onDisappear { controller.flush() }
+        .onChange(of: colorScheme) { _, new in controller.applyTheme(dark: new == .dark) }
+        .task(id: title) { await saveTitle() }
+        .sheet(isPresented: $isSchedulePresented) {
+            ScheduleTaskSheet(
+                taskText: controller.state.task.text,
+                existingID: controller.state.task.reminderID,
+                onScheduled: { id, due in controller.setTaskReminder(id: id, due: due) },
+                onCleared: { controller.setTaskReminder(id: nil, due: nil) }
+            )
         }
-        .task(id: text) {
-            await debouncedSave {
-                page.setBodyText(text)
+        .modifier(ImageImporter(isPresented: $isImporterPresented, insert: insertImage))
+        #if os(iOS)
+        .photosPicker(isPresented: $isImporterPresented, selection: $photoItem, matching: .images)
+        .onChange(of: photoItem) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self) {
+                    insertImage(data: data, mime: "image/png", name: "photo")
+                }
+                photoItem = nil
             }
         }
-        .task(id: title) {
-            await debouncedSave {
-                let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard trimmed != page.title else { return }
-                page.title = trimmed
-                page.updatedAt = Date()
-            }
-        }
+        #endif
     }
 
-    /// Where the page lives and when it last changed. On iPhone the location is already
-    /// in the navigation bar, so the caption there is just the timestamp.
+    // MARK: Wiring
+
+    private func load() {
+        guard !didLoad else { return }
+        didLoad = true
+        title = page.title
+
+        controller.onDocumentChanged = { data, plainText in
+            // The editor reports its document on every change; only a real change to the
+            // stored bytes should touch the page's timestamp.
+            guard data != page.body else { return }
+            page.body = data
+            page.plainText = plainText
+            page.updatedAt = Date()
+        }
+
+        controller.onImagePasted = { data, mime, name in
+            store(data: data, mime: mime, name: name)
+        }
+
+        controller.setDocument(json: page.body)
+        controller.applyTheme(dark: colorScheme == .dark)
+    }
+
+    private func saveTitle() async {
+        guard didLoad else { return }
+        try? await Task.sleep(for: .milliseconds(500))
+        guard !Task.isCancelled else { return }
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed != page.title else { return }
+        page.title = trimmed
+        page.updatedAt = Date()
+    }
+
+    /// Saves image bytes as an attachment of this page and returns its id; the document
+    /// only ever references `attachment://<id>`.
+    private func store(data: Data, mime: String, name: String) -> UUID {
+        let attachment = Attachment(
+            filename: name,
+            mimeType: mime,
+            data: data,
+            page: page
+        )
+        context.insert(attachment)
+        page.updatedAt = Date()
+        return attachment.id
+    }
+
+    private func insertImage(data: Data, mime: String, name: String) {
+        controller.insertImage(id: store(data: data, mime: mime, name: name))
+    }
+
     private var caption: String {
         let edited = "Edited \(page.updatedAt.formatted(.relative(presentation: .named)))"
         #if os(macOS)
@@ -86,14 +147,33 @@ struct PageEditorView: View {
         return edited
         #endif
     }
+}
 
-    /// Waits out the debounce window, then applies `save` unless the field changed again
-    /// (which cancels this task) or the view has not finished loading.
-    private func debouncedSave(_ save: () -> Void) async {
-        guard didLoad else { return }
-        try? await Task.sleep(for: .milliseconds(500))
-        guard !Task.isCancelled else { return }
-        save()
+/// Picking an image from disk. iOS uses the photo picker instead, so this only attaches
+/// the file importer on the Mac.
+private struct ImageImporter: ViewModifier {
+    @Binding var isPresented: Bool
+    let insert: (Data, String, String) -> Void
+
+    func body(content: Content) -> some View {
+        #if os(macOS)
+        content.fileImporter(
+            isPresented: $isPresented,
+            allowedContentTypes: [.image]
+        ) { result in
+            guard
+                case let .success(url) = result,
+                url.startAccessingSecurityScopedResource()
+            else { return }
+            defer { url.stopAccessingSecurityScopedResource() }
+
+            guard let data = try? Data(contentsOf: url) else { return }
+            let mime = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "image/png"
+            insert(data, mime, url.lastPathComponent)
+        }
+        #else
+        content
+        #endif
     }
 }
 
