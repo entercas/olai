@@ -8,3 +8,5 @@ Editor/node_modules/
 __pycache__/
 .venv/
 .build/
+mcp-server/.venv/
+mcp-server/*.egg-info/
