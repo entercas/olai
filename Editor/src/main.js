@@ -3,6 +3,8 @@ import './editor.css'
 import { Editor, InputRule } from '@tiptap/core'
 import { Plugin } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
+import { Transformer } from 'markmap-lib'
+import { Markmap } from 'markmap-view'
 import StarterKit from '@tiptap/starter-kit'
 import Highlight from '@tiptap/extension-highlight'
 import Image from '@tiptap/extension-image'
@@ -207,6 +209,7 @@ function sendState() {
     blockquote: editor.isActive('blockquote'),
     canUndo: editor.can().undo(),
     canRedo: editor.can().redo(),
+    mindMap: mindMapVisible,
     task,
   })
 }
@@ -251,6 +254,85 @@ const COMMANDS = {
   redo: () => editor.chain().focus().redo().run(),
   focus: () => editor.chain().focus().run(),
   flush: () => sendDocument.flush(),
+  toggleMindMap: () => setMindMap(!mindMapVisible),
+}
+
+// MARK: Mind map
+//
+// A read-only view of the page's outline -- headings and the bullets under them --
+// rendered with markmap in this same web view. No freeform canvas in v1.
+
+const mindMapHost = document.createElement('div')
+mindMapHost.id = 'mindmap'
+mindMapHost.hidden = true
+mindMapHost.innerHTML = '<svg></svg>'
+document.body.appendChild(mindMapHost)
+
+const transformer = new Transformer()
+let markmap = null
+let mindMapVisible = false
+
+function textOf(node) {
+  if (node.text) return node.text
+  return (node.content ?? []).map(textOf).join('')
+}
+
+const isList = (type) => ['bulletList', 'orderedList', 'taskList'].includes(type)
+
+/** The outline as Markdown: headings, and the bullets nested under them. */
+function outlineMarkdown() {
+  const lines = []
+
+  const walkList = (list, depth) => {
+    for (const item of list.content ?? []) {
+      const paragraph = (item.content ?? []).find((child) => child.type === 'paragraph')
+      const text = paragraph ? textOf(paragraph).trim() : ''
+      if (text) lines.push(`${'  '.repeat(depth)}- ${text}`)
+
+      for (const child of item.content ?? []) {
+        if (isList(child.type)) walkList(child, depth + (text ? 1 : 0))
+      }
+    }
+  }
+
+  for (const node of editor.getJSON().content ?? []) {
+    if (node.type === 'heading') {
+      const text = textOf(node).trim()
+      if (text) lines.push(`${'#'.repeat(node.attrs?.level ?? 1)} ${text}`)
+    } else if (isList(node.type)) {
+      walkList(node, 0)
+    }
+  }
+
+  return lines.join('\n')
+}
+
+function renderMindMap() {
+  const outline = outlineMarkdown()
+  const svg = mindMapHost.querySelector('svg')
+
+  if (!outline.trim()) {
+    svg.innerHTML =
+      '<text x="24" y="40" fill="currentColor" font-size="14">' +
+      'Nothing to map yet — add a heading or a bullet.</text>'
+    return
+  }
+
+  const { root } = transformer.transform(outline)
+  if (!markmap) {
+    markmap = Markmap.create(svg, { autoFit: true, duration: 200 }, root)
+  } else {
+    markmap.setData(root)
+    markmap.fit()
+  }
+}
+
+function setMindMap(visible) {
+  mindMapVisible = visible
+  mindMapHost.hidden = !visible
+  document.querySelector('#editor').hidden = visible
+  if (visible) renderMindMap()
+  sendState()
 }
 
 /** Everything Swift can call. */
@@ -258,6 +340,7 @@ window.olai = {
   setDocument({ json, readOnly }) {
     editor.setEditable(!readOnly)
     editor.commands.setContent(json ?? EMPTY_DOC, false)
+    if (mindMapVisible) renderMindMap()
     sendState()
   },
 

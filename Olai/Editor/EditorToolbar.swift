@@ -56,6 +56,12 @@ struct EditorToolbar: View {
                 divider
 
                 group {
+                    button(
+                        "point.topleft.down.to.point.bottomright.curvepath",
+                        state.mindMap ? "Back to the Page" : "Mind Map",
+                        on: state.mindMap
+                    ) { controller.run("toggleMindMap") }
+
                     button("photo", "Insert Image", action: onInsertImage)
                     button(
                         state.task.reminderID == nil ? "bell" : "bell.fill",

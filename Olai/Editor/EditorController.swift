@@ -29,6 +29,7 @@ struct EditorState: Equatable, Decodable {
     var blockquote = false
     var canUndo = false
     var canRedo = false
+    var mindMap = false
     var task = Task()
 }
 
