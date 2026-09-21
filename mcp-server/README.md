@@ -69,3 +69,18 @@ The tests build a fixture mirror in a temporary folder — including a hand-writ
 with no frontmatter, which the server must ignore — and cover every tool's logic. They
 do not need the `mcp` package: the reading lives in `olai_mcp/mirror.py`, and
 `server.py` is only the wiring.
+
+## Without installing anything
+
+`olai_mcp.standalone` is the same tools over an MCP stdio server written against the
+Python standard library, for machines where packages cannot be installed:
+
+```bash
+claude mcp add olai \
+  --env OLAI_ROOT="$HOME/Olai" \
+  --env PYTHONPATH="/path/to/olai/mcp-server" \
+  -- python3 -m olai_mcp.standalone
+```
+
+It runs on the `python3` macOS ships. Both servers call the same functions in
+`olai_mcp/tools.py`, so they cannot drift apart. See `docs/work-laptop.md`.
