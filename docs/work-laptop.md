@@ -15,21 +15,53 @@ not need the app, a database, or an account. So there are two separate questions
 Most people only need the second. Point the server at a synced copy of `~/Olai` and you
 get weekly summaries and priorities without installing anything.
 
-## Setup, with no package installs
+## Getting the code there
+
+The repository is private, and it does not need to become public for any of this. Three
+ways in, easiest first.
+
+**Copy four files.** The standalone server is 32 KB of standard-library Python. Nothing
+else is required — no git, no GitHub account on that machine, no install:
 
 ```bash
-git clone https://github.com/entercas/olai.git ~/olai
+# from a machine that has the repo
+cd mcp-server && tar czf ~/Desktop/olai-mcp.tgz olai_mcp/{__init__,mirror,tools,standalone}.py
 ```
 
-Then register the server with Claude Code, pointing `OLAI_ROOT` at wherever the mirror
-lives on that machine:
+Move that file over however you normally would, then on the work laptop:
+
+```bash
+mkdir -p ~/olai && tar xzf ~/Downloads/olai-mcp.tgz -C ~/olai
+```
+
+`~/olai` now holds `olai_mcp/` and that is the whole install.
+
+**Or clone the private repo.** Private is fine as long as the machine can authenticate:
+
+```bash
+gh auth login && gh repo clone entercas/olai ~/olai     # with the GitHub CLI
+git clone git@github.com:entercas/olai.git ~/olai        # with an SSH key
+git clone https://github.com/entercas/olai.git ~/olai    # with a personal access token
+```
+
+**Making the repository public is not necessary**, and costs something: it publishes the
+Apple Team ID in `project.yml`, the bundle and iCloud container identifiers, and the
+whole history — which stays cached and indexed even if it is made private again later.
+
+## Setup, with no package installs
+
+Register the server with Claude Code, pointing `PYTHONPATH` at wherever the code landed
+and `OLAI_ROOT` at wherever the mirror lives:
 
 ```bash
 claude mcp add olai --scope user \
   --env OLAI_ROOT="$HOME/Olai" \
-  --env PYTHONPATH="$HOME/olai/mcp-server" \
+  --env PYTHONPATH="$HOME/olai" \
   -- python3 -m olai_mcp.standalone
 ```
+
+Use `$HOME/olai/mcp-server` instead if you cloned the repository rather than copying the
+four files: `PYTHONPATH` has to point at the folder *containing* `olai_mcp`.
 
 `--scope user` is the part that is easy to miss: without it the default scope is
 `local`, meaning the server exists only in the directory you ran the command in. Notes
