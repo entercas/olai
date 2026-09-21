@@ -2,90 +2,97 @@ import Foundation
 import Testing
 @testable import OlaiCore
 
+/// Cases drawn from real dictation sessions: each name says which failure it guards.
 struct UtteranceBoundaryTests {
-    @Test func theFirstResultIsNeverANewUtterance() {
+    private func boundaries(_ transcripts: [String]) -> [Bool] {
         var boundary = UtteranceBoundary()
-        let first = boundary.isNewUtterance(transcript: "hello", startingAt: 0)
-        #expect(!first)
+        return transcripts.map { boundary.isNewUtterance(transcript: $0) }
+    }
+
+    @Test func theFirstResultIsNeverNew() {
+        #expect(boundaries(["hello"]) == [false])
     }
 
     @Test func growingTextRevisesWhatIsShown() {
-        var boundary = UtteranceBoundary()
-        _ = boundary.isNewUtterance(transcript: "Is the dictation", startingAt: 1)
-        let grown = boundary.isNewUtterance(transcript: "Is the dictation working", startingAt: 1)
-        #expect(!grown)
+        #expect(boundaries(["Is the dictation", "Is the dictation working"]) == [false, false])
     }
 
-    /// The case that defeated matching on leading characters.
-    @Test func aRevisionOfTheOpeningWordsIsStillTheSameUtterance() {
-        var boundary = UtteranceBoundary()
-        _ = boundary.isNewUtterance(transcript: "He is a dictation working", startingAt: 2.0)
-        let second = boundary.isNewUtterance(transcript: "He has a dictation working", startingAt: 2.0)
-        let third = boundary.isNewUtterance(transcript: "How is the dictation working?", startingAt: 2.0)
-        #expect(!second)
-        #expect(!third)
+    @Test func aTrimmedResultStillRevises() {
+        #expect(boundaries(["How is the dictation working", "How is the dictation"]) == [false, false])
     }
 
-    @Test func aTranscriptThatNowStartsLaterInTheAudioIsNew() {
-        var boundary = UtteranceBoundary()
-        _ = boundary.isNewUtterance(transcript: "Take notes here", startingAt: 1.0)
-        let next = boundary.isNewUtterance(transcript: "And trying", startingAt: 6.5)
-        #expect(next)
+    /// Recording one: separate phrases, each replacing the last, losing every one.
+    @Test func separatePhrasesAreSeparateUtterances() {
+        let spoken = ["Take notes here", "And trying", "To show it in Lord"]
+        #expect(boundaries(spoken) == [false, true, true])
     }
 
-    /// The failure in the screen recording: every phrase replaced the one before it.
-    @Test func eachPhraseInTheRecordingIsItsOwnUtterance() {
-        var boundary = UtteranceBoundary()
-        let phrases: [(String, TimeInterval)] = [
-            ("Tak", 0.5),
-            ("Take notes here", 0.5),
-            ("And trying", 4.0),
-            ("To show it in Lord", 9.0),
-            ("And working through building", 15.0),
-            ("And working through building of the app", 15.0),
+    /// Recording two: one sentence revised as it was spoken, appended three times.
+    @Test func aLongSentenceBeingRevisedStaysOneUtterance() {
+        let spoken = [
+            "OK, so which model are you currently using? I'm using Gwen three",
+            "OK, so which model are you currently using? I'm using 305 the nine",
+            "OK, so which model are you currently using? I'm using 3.5 to 9,000,000,000 parameter",
         ]
-
-        let boundaries = phrases.map { boundary.isNewUtterance(transcript: $0.0, startingAt: $0.1) }
-        // "Take notes here" revises "Tak"; each later phrase starts a new utterance,
-        // except the last, which extends the one before it.
-        #expect(boundaries == [false, false, true, true, true, false])
+        #expect(boundaries(spoken) == [false, false, false])
     }
 
-    @Test func timingsThatDoNotMoveKeepTheSameUtterance() {
-        var boundary = UtteranceBoundary()
-        _ = boundary.isNewUtterance(transcript: "one two", startingAt: 3.0)
-        let jitter = boundary.isNewUtterance(transcript: "one two three", startingAt: 3.02)
-        #expect(!jitter)
+    /// The session before those: the opening words themselves were revised.
+    @Test func aRewrittenOpeningIsStillTheSameUtterance() {
+        let spoken = [
+            "He is a dictation working",
+            "He has a dictation working",
+            "How is the dictation working?",
+        ]
+        #expect(boundaries(spoken) == [false, false, false])
     }
 
-    // MARK: Without timings
-
-    @Test func withoutTimingsSomethingShorterAndUnrelatedIsNew() {
-        var boundary = UtteranceBoundary()
-        _ = boundary.isNewUtterance(transcript: "Take notes here", startingAt: nil)
-        let shorter = boundary.isNewUtterance(transcript: "And trying", startingAt: nil)
-        #expect(shorter)
+    @Test func unrelatedSentencesAreSeparate() {
+        let spoken = ["this is the first thing I said", "and here is the second thing"]
+        #expect(boundaries(spoken) == [false, true])
     }
 
-    @Test func withoutTimingsATrimmedRevisionIsNotNew() {
+    @Test func resettingForgetsWhatWasShown() {
         var boundary = UtteranceBoundary()
-        _ = boundary.isNewUtterance(transcript: "How is the dictation working", startingAt: nil)
-        let trimmed = boundary.isNewUtterance(transcript: "How is the dictation", startingAt: nil)
-        #expect(!trimmed)
-    }
-
-    @Test func withoutTimingsALongerRewriteIsTreatedAsARevision() {
-        var boundary = UtteranceBoundary()
-        _ = boundary.isNewUtterance(transcript: "It's late and", startingAt: nil)
-        let rewritten = boundary.isNewUtterance(transcript: "It's latency not legacy", startingAt: nil)
-        #expect(!rewritten)
-    }
-
-    @Test func resettingForgetsTheUtteranceOnScreen() {
-        var boundary = UtteranceBoundary()
-        _ = boundary.isNewUtterance(transcript: "something", startingAt: 4.0)
+        _ = boundary.isNewUtterance(transcript: "something entirely different")
         boundary.reset()
-        let afterReset = boundary.isNewUtterance(transcript: "fresh start", startingAt: 0)
+        let afterReset = boundary.isNewUtterance(transcript: "fresh start")
         #expect(!afterReset)
+    }
+
+    // MARK: The measures themselves
+
+    @Test func sharedOpeningIsAFractionOfTheShorterText() {
+        #expect(UtteranceBoundary.sharedOpeningRatio("abcdef", "abcxyz") == 0.5)
+        #expect(UtteranceBoundary.sharedOpeningRatio("abc", "xyz") == 0)
+        #expect(UtteranceBoundary.sharedOpeningRatio("", "abc") == 0)
+    }
+
+    @Test func wordSimilarityIgnoresCaseAndPunctuation() {
+        #expect(UtteranceBoundary.wordSimilarity("Hello, world!", "hello world") == 1)
+        #expect(UtteranceBoundary.wordSimilarity("one two three", "four five six") == 0)
+        #expect(UtteranceBoundary.wordSimilarity("", "anything") == 0)
+    }
+
+    @Test func sharedEndingIsAFractionOfTheShorterText() {
+        #expect(UtteranceBoundary.sharedEndingRatio("xyzabc", "uvwabc") == 0.5)
+        #expect(UtteranceBoundary.sharedEndingRatio("abc", "xyz") == 0)
+    }
+
+    /// A rewritten opening keeps the ending that was just heard.
+    @Test func aRewrittenOpeningKeepsItsEnding() {
+        let ratio = UtteranceBoundary.sharedEndingRatio(
+            "He has a dictation working",
+            "How is the dictation working"
+        )
+        #expect(ratio >= 0.5)
+    }
+
+    @Test func wordSimilaritySeesThroughARewrittenOpening() {
+        let score = UtteranceBoundary.wordSimilarity(
+            "He is a dictation working",
+            "How is the dictation working"
+        )
+        #expect(score >= 0.6)
     }
 }

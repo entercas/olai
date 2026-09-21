@@ -2,56 +2,110 @@ import Foundation
 
 /// Decides whether a speech result revises what is on screen or starts something new.
 ///
-/// Speech recognition streams a revisable guess at the current run of speech, and
-/// revises its opening words as readily as its closing ones -- "He is a" becomes "How
-/// is the" -- so the words themselves cannot say where one utterance ends and the next
-/// begins. Two signals can:
+/// Recognition gives a revisable guess at what is being said, and neither `isFinal` nor
+/// the segment timings mark where one run of speech ends and the next begins:
 ///
-/// - Segment timings. Each segment carries where it sits in the task's audio, so a
-///   transcript that now begins later than the one before it has dropped what came
-///   earlier: that is a new utterance.
-/// - Failing that, length. A revision grows or refines what was said; a recogniser that
-///   has started over reports something shorter that is not a trimmed version of it.
+/// - Speaking a second sentence after a pause can report a transcript that starts over,
+///   with no final for the first. Replacing then loses the first sentence.
+/// - Speaking continuously reports a growing transcript whose segment timings advance as
+///   earlier words are confirmed. Treating that as new text appends the same sentence
+///   again and again.
+///
+/// So the text itself is compared: what carries over at the start, what carries over at
+/// the end, and how many words survive in order.
+///
+/// What separates the two is how much of the text carries over. A revision keeps most of
+/// it -- the same words, in order, with an ending changed or added. A new run of speech
+/// shares almost nothing. Where the answer is unclear this keeps both, since repeated
+/// words can be deleted but lost words cannot be recovered.
 public struct UtteranceBoundary: Sendable {
-    /// Where the utterance on screen starts in the task's audio.
-    public private(set) var start: TimeInterval = 0
     /// What the editor is showing.
     public private(set) var shownText: String = ""
-    /// Whether any result has reported a time past the beginning. Until one does, a
-    /// timing of zero could equally mean "starts at the beginning" or "not filled in",
-    /// so the length rule decides instead.
-    private var hasTimings = false
 
     public init() {}
 
     /// Records a result, returning true when it begins a new utterance.
-    public mutating func isNewUtterance(transcript: String, startingAt segmentStart: TimeInterval?) -> Bool {
+    public mutating func isNewUtterance(transcript: String, startingAt _: TimeInterval? = nil) -> Bool {
         defer { shownText = transcript }
 
-        if let segmentStart, segmentStart > 0 { hasTimings = true }
+        let previous = shownText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let next = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !previous.isEmpty, !next.isEmpty else { return false }
 
-        // The first result of a task is the utterance, not a new one -- but its start
-        // has to be remembered, or the next result looks like a jump forward.
-        guard !shownText.isEmpty else {
-            start = segmentStart ?? 0
-            return false
-        }
+        // Simply carrying on: the commonest case by far.
+        if next.hasPrefix(previous) || previous.hasPrefix(next) { return false }
 
-        if hasTimings, let segmentStart {
-            guard segmentStart > start + Self.tolerance else { return false }
-            start = segmentStart
-            return true
-        }
-
-        if transcript.hasPrefix(shownText) || shownText.hasPrefix(transcript) { return false }
-        return transcript.count < shownText.count
+        if Self.sharedOpeningRatio(previous, next) >= Self.overlapThreshold { return false }
+        // A recogniser that re-guesses the opening usually keeps the ending it had just
+        // heard: "He has a dictation working" becomes "How is the dictation working?".
+        if Self.sharedEndingRatio(previous, next) >= Self.overlapThreshold { return false }
+        return Self.wordSimilarity(previous, next) < Self.similarityThreshold
     }
 
-    /// Resets for a new recognition task.
+    /// Forgets the utterance on screen, for a new recognition task.
     public mutating func reset() {
         self = UtteranceBoundary()
     }
 
-    /// Segment timings wobble slightly between results for the same words.
-    private static let tolerance: TimeInterval = 0.05
+    // MARK: Comparing
+
+    /// How much of the shorter text the two share from the start.
+    ///
+    /// Compared without case or punctuation: recognition adds and removes commas and
+    /// question marks as it goes, and a trailing "?" should not read as a new sentence.
+    public static func sharedOpeningRatio(_ a: String, _ b: String) -> Double {
+        let first = normalized(a)
+        let second = normalized(b)
+        return ratio(zip(first, second).prefix { $0 == $1 }.count, first, second)
+    }
+
+    /// How much of the shorter text the two share at the end.
+    public static func sharedEndingRatio(_ a: String, _ b: String) -> Double {
+        let first = normalized(a)
+        let second = normalized(b)
+        return ratio(zip(first.reversed(), second.reversed()).prefix { $0 == $1 }.count, first, second)
+    }
+
+    private static func ratio(_ shared: Int, _ a: String, _ b: String) -> Double {
+        let shortest = min(a.count, b.count)
+        return shortest == 0 ? 0 : Double(shared) / Double(shortest)
+    }
+
+    /// Lowercased, punctuation dropped, runs of space collapsed.
+    private static func normalized(_ text: String) -> String {
+        words(text).joined(separator: " ")
+    }
+
+    /// How many words the two have in common, in order, as a fraction of their length.
+    /// Catches a revision that rewrites the opening — "He is a" becoming "How is the" —
+    /// which shares no useful prefix but nearly every other word.
+    public static func wordSimilarity(_ a: String, _ b: String) -> Double {
+        let first = words(a)
+        let second = words(b)
+        guard !first.isEmpty, !second.isEmpty else { return 0 }
+
+        var table = Array(
+            repeating: Array(repeating: 0, count: second.count + 1),
+            count: first.count + 1
+        )
+        for i in 1...first.count {
+            for j in 1...second.count {
+                table[i][j] = first[i - 1] == second[j - 1]
+                    ? table[i - 1][j - 1] + 1
+                    : max(table[i - 1][j], table[i][j - 1])
+            }
+        }
+
+        let common = Double(table[first.count][second.count])
+        return 2 * common / Double(first.count + second.count)
+    }
+
+    private static func words(_ text: String) -> [String] {
+        text.lowercased()
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+    }
+
+    private static let overlapThreshold = 0.5
+    private static let similarityThreshold = 0.6
 }

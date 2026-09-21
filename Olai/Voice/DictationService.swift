@@ -139,6 +139,7 @@ final class DictationService {
         utterance += 1
         generation += 1
         boundary.reset()
+        DictationLog.start("task \(generation)")
 
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
@@ -183,14 +184,23 @@ final class DictationService {
         nonisolated(unsafe) let target = service
         return recognizer.recognitionTask(with: request) { result, error in
             let transcript = result?.bestTranscription.formattedString
-            let start = result?.bestTranscription.segments.first?.timestamp
+
+            if let result {
+                DictationLog.result(
+                    generation: generation,
+                    isFinal: result.isFinal,
+                    segments: result.bestTranscription.segments.map {
+                        (start: $0.timestamp, duration: $0.duration, text: $0.substring)
+                    },
+                    transcript: result.bestTranscription.formattedString
+                )
+            }
             let isFinal = result?.isFinal ?? false
             let failed = error != nil
 
             Task { @MainActor in
                 target.receive(
                     transcript: transcript,
-                    startingAt: start,
                     generation: generation,
                     isFinal: isFinal,
                     failed: failed
@@ -201,7 +211,6 @@ final class DictationService {
 
     private func receive(
         transcript: String?,
-        startingAt start: TimeInterval?,
         generation: Int,
         isFinal: Bool,
         failed: Bool
@@ -210,7 +219,7 @@ final class DictationService {
         guard generation == self.generation else { return }
 
         if let transcript {
-            if boundary.isNewUtterance(transcript: transcript, startingAt: start) {
+            if boundary.isNewUtterance(transcript: transcript) {
                 utterance += 1
             }
             onTranscript?(transcript, utterance, isFinal)

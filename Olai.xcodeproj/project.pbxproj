@@ -15,6 +15,7 @@
 		282196F7BDA313804C0AEF4E /* DictationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1629147F76F34641732268 /* DictationService.swift */; };
 		2EE4CC68D3B3658B32690E30 /* TemplateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40877970807595091A0D1D8 /* TemplateStore.swift */; };
 		3649C9D2874EBC723419974C /* DraggedItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2AE67FA1FA45839EE0FF71B /* DraggedItem.swift */; };
+		387F7A2893B4CDE7F189CAF9 /* DictationLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5EDBDBC7C5FFCBE3AB056A7 /* DictationLog.swift */; };
 		407055C1FD60D25CE18C8C91 /* EditorWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B19871D04521AAB0C9D5708 /* EditorWebView.swift */; };
 		455F465DA9DDEB684153DE0F /* OlaiModelContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC45749CCA0B22FFD810C16B /* OlaiModelContainer.swift */; };
 		4CD998A1832AFDE3C94CAE30 /* weekly.json in Resources */ = {isa = PBXBuildFile; fileRef = 69676CAB673C0723AEF66B6A /* weekly.json */; };
@@ -66,6 +67,7 @@
 		92E723D1F71911CD23D33C62 /* EditorController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorController.swift; sourceTree = "<group>"; };
 		A40877970807595091A0D1D8 /* TemplateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateStore.swift; sourceTree = "<group>"; };
 		ADC9C75EE5A57412F76783F2 /* PageEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageEditorView.swift; sourceTree = "<group>"; };
+		B5EDBDBC7C5FFCBE3AB056A7 /* DictationLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationLog.swift; sourceTree = "<group>"; };
 		B8E2A25E0D44A18FB5420ACF /* SidebarExpansion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarExpansion.swift; sourceTree = "<group>"; };
 		BB6462A890B985F1DD3C4EEB /* MirrorExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorExporter.swift; sourceTree = "<group>"; };
 		C2AE67FA1FA45839EE0FF71B /* DraggedItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraggedItem.swift; sourceTree = "<group>"; };
@@ -152,6 +154,7 @@
 		A1D0BDAD114C546D8BACF664 /* Voice */ = {
 			isa = PBXGroup;
 			children = (
+				B5EDBDBC7C5FFCBE3AB056A7 /* DictationLog.swift */,
 				DA1629147F76F34641732268 /* DictationService.swift */,
 				395C821C5F0BC57CF6BF6B63 /* TranscriptImport.swift */,
 			);
@@ -307,6 +310,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				387F7A2893B4CDE7F189CAF9 /* DictationLog.swift in Sources */,
 				282196F7BDA313804C0AEF4E /* DictationService.swift in Sources */,
 				3649C9D2874EBC723419974C /* DraggedItem.swift in Sources */,
 				FDE522E9ACBD1C0906BF3FE1 /* EditorController.swift in Sources */,
