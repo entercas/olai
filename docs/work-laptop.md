@@ -25,11 +25,16 @@ Then register the server with Claude Code, pointing `OLAI_ROOT` at wherever the 
 lives on that machine:
 
 ```bash
-claude mcp add olai \
+claude mcp add olai --scope user \
   --env OLAI_ROOT="$HOME/Olai" \
   --env PYTHONPATH="$HOME/olai/mcp-server" \
   -- python3 -m olai_mcp.standalone
 ```
+
+`--scope user` is the part that is easy to miss: without it the default scope is
+`local`, meaning the server exists only in the directory you ran the command in. Notes
+are worth asking about from wherever you happen to be working, so register it for the
+user.
 
 That is the whole install. `olai_mcp.standalone` is an MCP server written against the
 Python standard library, so it runs on the `python3` macOS already has — verified on the
@@ -40,6 +45,20 @@ Check it:
 ```bash
 claude mcp list
 ```
+
+It should report `olai: python3 -m olai_mcp.standalone - ✓ Connected`.
+
+Then just ask, in an ordinary Claude Code session:
+
+```
+> summarise my last two weeks
+> what should I prioritise next week?
+> what did I write about the mirror?
+```
+
+There is nothing to invoke by hand. Claude Code sees the tools and calls them when a
+question needs them; the three prompts are also available as slash commands, listed
+under `/mcp`.
 
 If `python3` is missing, macOS offers to install the Command Line Tools, which is the
 only prerequisite. The richer SDK server (`olai_mcp.server`) is still there for machines

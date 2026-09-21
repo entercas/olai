@@ -40,9 +40,11 @@ Restart Claude Desktop afterwards.
 **Claude Code**:
 
 ```bash
-claude mcp add olai --env OLAI_ROOT=/Users/rahulr/Olai -- \
-  /Users/rahulr/Documents/olai/mcp-server/.venv/bin/python -m olai_mcp.server
+claude mcp add olai --scope user --env OLAI_ROOT=/Users/rahulr/Olai -- \
+  /Users/rahulr/Documents/olai/mcp-server/.venv/bin/olai-mcp
 ```
+
+Without `--scope user` the server is registered for the current directory only.
 
 ## Tools
 
@@ -76,7 +78,7 @@ do not need the `mcp` package: the reading lives in `olai_mcp/mirror.py`, and
 Python standard library, for machines where packages cannot be installed:
 
 ```bash
-claude mcp add olai \
+claude mcp add olai --scope user \
   --env OLAI_ROOT="$HOME/Olai" \
   --env PYTHONPATH="/path/to/olai/mcp-server" \
   -- python3 -m olai_mcp.standalone
