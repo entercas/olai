@@ -19,6 +19,11 @@ settings:
     SWIFT_STRICT_CONCURRENCY: complete
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
+  configs:
+    Release:
+      # Notarisation requires the hardened runtime. It costs nothing in a debug build
+      # either, but keeping it to Release leaves local debugging alone.
+      ENABLE_HARDENED_RUNTIME: YES
 
 targets:
   Olai:

@@ -136,7 +136,9 @@ xcodebuild -scheme Olai -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
 To run it on a second Mac without an Apple ID, there is a local build that drops iCloud
-and signs itself — see [docs/install-second-mac.md](docs/install-second-mac.md).
+and signs itself — see [docs/install-second-mac.md](docs/install-second-mac.md). To hand
+it to other people, `scripts/release-mac.sh` signs, notarises and packages a `.dmg`
+without going near the App Store — see [docs/distributing.md](docs/distributing.md).
 
 The web editor is built separately and its output is committed, so the app builds
 without Node:
