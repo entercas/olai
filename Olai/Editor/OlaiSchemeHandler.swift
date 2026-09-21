@@ -64,8 +64,9 @@ final class OlaiSchemeHandler: NSObject, WKURLSchemeHandler {
             let data = attachment.data
         else { return nil }
 
-        let mime = attachment.mimeType.isEmpty ? "application/octet-stream" : attachment.mimeType
-        return (data, mime)
+        // Narrowed again here, not just when storing: an attachment can reach this
+        // device over CloudKit without ever passing through the paste path.
+        return (data, Attachment.safeMimeType(attachment.mimeType))
     }
 
     /// Runs on whichever thread WebKit calls on, against a context created there: the

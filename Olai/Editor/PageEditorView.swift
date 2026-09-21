@@ -149,7 +149,7 @@ struct PageEditorView: View {
     private func store(data: Data, mime: String, name: String) -> UUID {
         let attachment = Attachment(
             filename: name,
-            mimeType: mime,
+            mimeType: Attachment.safeMimeType(mime),
             data: data,
             page: page
         )

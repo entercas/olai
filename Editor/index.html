@@ -4,6 +4,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>Olai Editor</title>
+    <!-- The editor only ever runs code that shipped inside the app. vite inlines
+         the bundle into one script and one style tag, hence 'unsafe-inline'.
+         script-src names no remote host, so markmap's bundled CDN loader can never
+         inject a <script src> from jsdelivr or unpkg -- that is what stops it, not
+         connect-src, which blocks fetch and XHR. Images are served same-origin from
+         olai://editor/attachment/<uuid>. This policy does not restrict top-level
+         navigation; CSP has no directive for it. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' olai:; style-src 'self' 'unsafe-inline' olai:; img-src 'self' olai: data: blob:; font-src 'self' olai: data:; connect-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
   </head>
   <body>
     <div id="editor"></div>

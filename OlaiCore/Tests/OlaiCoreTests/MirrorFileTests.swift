@@ -43,6 +43,11 @@ struct MirrorFileTests {
         #expect(MirrorFile.sanitize("  spaced   out  ") == "spaced out")
         #expect(MirrorFile.sanitize("") == "untitled")
         #expect(MirrorFile.sanitize("...") == "untitled")
+        // A title is attacker-controllable in the sense that it can be typed, pasted
+        // or arrive over CloudKit; it must never climb out of the mirror directory.
+        #expect(!MirrorFile.sanitize("../../../etc/passwd").contains("/"))
+        #expect(!MirrorFile.sanitize("..\\..\\Windows").contains("\\"))
+        #expect(!MirrorFile.sanitize("../../../etc/passwd").hasPrefix("."))
         #expect(MirrorFile.sanitize(String(repeating: "a", count: 200)).count <= 80)
     }
 
