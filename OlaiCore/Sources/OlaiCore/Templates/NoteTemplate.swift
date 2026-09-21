@@ -125,11 +125,19 @@ public extension TemplateLibrary {
             .trimmingCharacters(in: .whitespaces)
     }
 
-    /// The Monday of the week containing `date`. Weekly pages use it for both the title
-    /// and `periodStart`, so the two have to agree.
+    /// The Monday of the week a page created now is for. Weekly pages use it for both
+    /// the title and `periodStart`, so the two cannot drift apart.
+    ///
+    /// On a Sunday that is the Monday that follows: a weekly page started on a Sunday is
+    /// for the week ahead, not the one that has just finished. Every other day gives the
+    /// Monday of the week in progress.
     static func monday(of date: Date, calendar: Calendar = .current) -> Date {
-        var week = calendar
-        week.firstWeekday = 2 // Monday, whatever the locale would otherwise pick
-        return week.dateInterval(of: .weekOfYear, for: date)?.start ?? week.startOfDay(for: date)
+        let today = calendar.startOfDay(for: date)
+        let weekday = calendar.component(.weekday, from: today) // 1 = Sunday … 7 = Saturday
+
+        if weekday == 1 {
+            return calendar.date(byAdding: .day, value: 1, to: today) ?? today
+        }
+        return calendar.date(byAdding: .day, value: -(weekday - 2), to: today) ?? today
     }
 }

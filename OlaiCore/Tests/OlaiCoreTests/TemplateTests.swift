@@ -53,10 +53,10 @@ struct TemplateTests {
         }
     }
 
-    @Test func mondayIsTheStartOfTheWeekWhateverTheLocalePrefers() throws {
+    /// A page started on a Sunday is for the week ahead, not the one just finished.
+    @Test func sundayBelongsToTheWeekThatStartsTheNextDay() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = try #require(TimeZone(identifier: "UTC"))
-        // A Sunday, which several locales treat as the first day of the week.
         let sunday = try #require(
             DateComponents(calendar: calendar, year: 2026, month: 9, day: 20).date
         )
@@ -64,8 +64,43 @@ struct TemplateTests {
         let monday = TemplateLibrary.monday(of: sunday, calendar: calendar)
         let parts = calendar.dateComponents([.year, .month, .day, .weekday], from: monday)
         #expect(parts.weekday == 2)
-        #expect(parts.day == 14)
+        #expect(parts.day == 21)
         #expect(parts.month == 9)
+    }
+
+    @Test func everyOtherDayGivesTheMondayOfTheWeekInProgress() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(identifier: "UTC"))
+
+        // Monday 21st through Saturday 26th all belong to the week starting the 21st.
+        for day in 21...26 {
+            let date = try #require(
+                DateComponents(calendar: calendar, year: 2026, month: 9, day: day).date
+            )
+            let monday = TemplateLibrary.monday(of: date, calendar: calendar)
+            let parts = calendar.dateComponents([.day, .weekday], from: monday)
+            #expect(parts.weekday == 2, "day \(day) did not land on a Monday")
+            #expect(parts.day == 21, "day \(day) gave Monday the \(parts.day ?? -1)")
+        }
+    }
+
+    @Test func aWeeklyTitleAndItsPeriodStartAgree() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(identifier: "UTC"))
+        let sunday = try #require(
+            DateComponents(calendar: calendar, year: 2026, month: 9, day: 20).date
+        )
+
+        let title = TemplateLibrary.title(
+            from: "Week of {{weekOf}}",
+            now: sunday,
+            calendar: calendar,
+            locale: Locale(identifier: "en_US_POSIX")
+        )
+        let periodStart = TemplateLibrary.monday(of: sunday, calendar: calendar)
+
+        #expect(title == "Week of Sep 21, 2026")
+        #expect(calendar.dateComponents([.day], from: periodStart).day == 21)
     }
 
     @Test func mondayOfAMondayIsThatSameDay() throws {
@@ -95,7 +130,7 @@ struct TemplateTests {
             locale: locale
         )
         #expect(title.hasPrefix("Week of "))
-        #expect(title.contains("14"))
+        #expect(title.contains("21"))
         #expect(!title.contains("{{"))
 
         let stamped = TemplateLibrary.title(
