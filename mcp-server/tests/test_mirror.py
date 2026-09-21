@@ -85,6 +85,22 @@ def test_weekly_pages_go_back_the_requested_number_of_weeks(mirror_root: Path):
     assert [p.title for p in two] == ["Week of Sep 14, 2026", "Week of Sep 7, 2026"]
 
 
+def test_the_week_in_progress_matches_how_the_app_titles_a_page(mirror_root: Path):
+    # Friday and Sunday sit either side of the boundary: the app would title a page made
+    # on Friday the 18th "Week of Sep 14", and one made on Sunday the 20th "Week of Sep 21".
+    assert mirror.current_monday(date(2026, 9, 18)) == date(2026, 9, 14)
+    assert mirror.current_monday(date(2026, 9, 20)) == date(2026, 9, 21)
+    assert mirror.current_monday(date(2026, 9, 21)) == date(2026, 9, 21)
+
+
+def test_a_page_for_the_coming_week_is_returned_on_a_sunday(mirror_root: Path):
+    pages = mirror.load_pages(mirror_root)
+    # On Sunday the 20th, the week in progress starts the 21st, so four weeks back still
+    # reaches the page for the week of the 14th.
+    titles = [p.title for p in mirror.weekly_pages(pages, weeks_back=4, today=date(2026, 9, 20))]
+    assert "Week of Sep 14, 2026" in titles
+
+
 def test_goals_come_back_with_their_evidence_and_citations(mirror_root: Path):
     pages = mirror.load_pages(mirror_root)
     goals = mirror.goals_with_evidence(pages)

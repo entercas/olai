@@ -228,10 +228,22 @@ def search_pages(pages: list[Page], query: str, limit: int = 20) -> list[dict]:
     return results[:limit]
 
 
+def current_monday(today: date | None = None) -> date:
+    """The Monday of the week a page created now would be for.
+
+    Sunday belongs to the week that starts the next day, matching how the app titles a
+    weekly page: one started on a Sunday is for the week ahead. Without this the server
+    would not return the page the app had just created.
+    """
+    today = today or date.today()
+    if today.weekday() == 6:  # Sunday
+        return today + timedelta(days=1)
+    return today - timedelta(days=today.weekday())
+
+
 def weekly_pages(pages: list[Page], weeks_back: int, today: date | None = None) -> list[Page]:
     """Weekly pages whose period_start falls in the last `weeks_back` weeks."""
-    today = today or date.today()
-    monday = today - timedelta(days=today.weekday())
+    monday = current_monday(today)
     earliest = monday - timedelta(weeks=max(weeks_back - 1, 0))
 
     selected = [
