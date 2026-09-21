@@ -12,3 +12,4 @@ mcp-server/.venv/
 mcp-server/*.egg-info/
 Editor/dist/
 mcp-server/dist/
+build/
