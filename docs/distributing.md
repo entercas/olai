@@ -21,10 +21,40 @@ the app does or whether something like it already exists.
 
 ## Once, before the first release
 
-1. **A Developer ID Application certificate.** Xcode ▸ Settings ▸ Accounts ▸ your
-   account ▸ Manage Certificates ▸ **+** ▸ Developer ID Application. Apple allows a
-   small number of these per account, and they are what your name is attached to on
-   every copy you hand out — keep the private key backed up.
+1. **A Developer ID Application certificate.**
+
+   In Xcode:
+
+   - **Xcode ▸ Settings…** (⌘,) ▸ **Accounts**
+   - Pick your Apple ID on the left. If it is not listed, **+** ▸ Apple ID and sign in —
+     this is the developer account, and it is not the same as signing the Mac in to
+     iCloud.
+   - Select your team on the right, then **Manage Certificates…**
+   - **+** at the bottom left ▸ **Developer ID Application**
+   - It appears in the list after a few seconds. Close the sheet.
+
+   Confirm it landed:
+
+   ```bash
+   security find-identity -v -p codesigning | grep "Developer ID Application"
+   ```
+
+   Two things worth knowing:
+
+   - Apple allows only a handful of these per account, and only the Account Holder can
+     create one. On an individual account that is you.
+   - **Back up the private key.** Keychain Access ▸ My Certificates ▸ right-click the
+     Developer ID certificate ▸ Export ▸ save as `.p12` with a password, somewhere safe.
+     Lose it and you cannot sign updates as the same identity — anyone who already has
+     the app then sees a different developer, and macOS treats it as a different app
+     for permissions.
+
+   If the **+** menu does not offer Developer ID Application, the account is signed in
+   with a role that cannot create one, or the membership has lapsed. The portal route is
+   the alternative: [developer.apple.com/account/resources/certificates](https://developer.apple.com/account/resources/certificates)
+   ▸ **+** ▸ Developer ID Application, which asks for a certificate signing request that
+   you make in Keychain Access ▸ Certificate Assistant ▸ Request a Certificate From a
+   Certificate Authority.
 
 2. **Notarisation credentials in the keychain.** Create an app-specific password at
    [appleid.apple.com](https://appleid.apple.com) ▸ Sign-In and Security ▸ App-Specific
