@@ -1,7 +1,9 @@
 import Foundation
 import OlaiCore
-import Security
 import SwiftData
+#if os(macOS)
+import Security
+#endif
 
 /// Builds the app's `ModelContainer`.
 ///
@@ -39,12 +41,19 @@ enum OlaiModelContainer {
         }
     }
 
-    /// Whether this build carries an iCloud container entitlement. A build signed
-    /// locally, with no Apple ID and no provisioning profile, does not.
+    /// Whether this build carries an iCloud container entitlement.
+    ///
+    /// Only the Mac can be built without one — the local variant, signed with no Apple
+    /// ID and no provisioning profile. An iPhone build always has a profile, and
+    /// `SecTaskCreateFromSelf` is macOS-only, so the question does not arise there.
     private static var isEntitledToCloudKit: Bool {
+        #if os(macOS)
         guard let task = SecTaskCreateFromSelf(nil) else { return false }
         let key = "com.apple.developer.icloud-container-identifiers" as CFString
         let containers = SecTaskCopyValueForEntitlement(task, key, nil) as? [String]
         return !(containers ?? []).isEmpty
+        #else
+        return true
+        #endif
     }
 }
