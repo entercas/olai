@@ -134,7 +134,19 @@ html, body {
   display: block;
 }
 
-#mindmap svg .markmap-node > text,
+/* markmap draws its labels as HTML inside foreignObject, not as <text>, so a fill
+   rule never reaches them -- in dark mode they came out near-invisible. */
 #mindmap svg text {
   fill: var(--text);
+}
+
+#mindmap .markmap-foreign,
+#mindmap .markmap-foreign *,
+#mindmap foreignObject,
+#mindmap foreignObject * {
+  color: var(--text);
+}
+
+#mindmap .markmap-foreign a {
+  color: var(--accent);
 }
