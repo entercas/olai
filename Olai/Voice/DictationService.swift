@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import OlaiCore
 import Observation
 import Speech
 
@@ -34,9 +35,15 @@ final class DictationService {
     @ObservationIgnored private let engine = AVAudioEngine()
     @ObservationIgnored private var request: SFSpeechAudioBufferRecognitionRequest?
     @ObservationIgnored private var task: SFSpeechRecognitionTask?
-    /// Bumped for every recognition task, so the editor can tell a revision of the
-    /// current utterance from the start of the next one.
+    /// Identifies the run of speech the editor is currently showing, so it can tell a
+    /// revision of it from the start of the next one.
     @ObservationIgnored private var utterance = 0
+    /// Decides whether a result revises the utterance on screen or starts a new one.
+    /// The recogniser drops earlier sentences and reports only the latest without ever
+    /// saying it is final, so this cannot be left to `isFinal` alone.
+    @ObservationIgnored private var boundary = UtteranceBoundary()
+    /// Distinguishes results from the task in progress from a cancelled one's.
+    @ObservationIgnored private var generation = 0
 
     func toggle() async {
         state.isRunning ? stop() : await start()
@@ -130,6 +137,8 @@ final class DictationService {
         #endif
 
         utterance += 1
+        generation += 1
+        boundary.reset()
 
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
@@ -142,7 +151,7 @@ final class DictationService {
         task = Self.startRecognizing(
             with: recognizer,
             request: request,
-            utterance: utterance,
+            generation: generation,
             reporting: self
         )
     }
@@ -168,19 +177,21 @@ final class DictationService {
     private nonisolated static func startRecognizing(
         with recognizer: SFSpeechRecognizer,
         request: SFSpeechAudioBufferRecognitionRequest,
-        utterance: Int,
+        generation: Int,
         reporting service: DictationService
     ) -> SFSpeechRecognitionTask {
         nonisolated(unsafe) let target = service
         return recognizer.recognitionTask(with: request) { result, error in
             let transcript = result?.bestTranscription.formattedString
+            let start = result?.bestTranscription.segments.first?.timestamp
             let isFinal = result?.isFinal ?? false
             let failed = error != nil
 
             Task { @MainActor in
                 target.receive(
                     transcript: transcript,
-                    utterance: utterance,
+                    startingAt: start,
+                    generation: generation,
                     isFinal: isFinal,
                     failed: failed
                 )
@@ -188,8 +199,20 @@ final class DictationService {
         }
     }
 
-    private func receive(transcript: String?, utterance: Int, isFinal: Bool, failed: Bool) {
+    private func receive(
+        transcript: String?,
+        startingAt start: TimeInterval?,
+        generation: Int,
+        isFinal: Bool,
+        failed: Bool
+    ) {
+        // A cancelled task can still deliver one last result.
+        guard generation == self.generation else { return }
+
         if let transcript {
+            if boundary.isNewUtterance(transcript: transcript, startingAt: start) {
+                utterance += 1
+            }
             onTranscript?(transcript, utterance, isFinal)
         }
         // A recognition error ends the utterance; the user can start again.
@@ -199,4 +222,5 @@ final class DictationService {
         }
         if isFinal { beginNextUtterance() }
     }
+
 }
