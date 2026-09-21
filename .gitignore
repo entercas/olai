@@ -10,3 +10,4 @@ __pycache__/
 .build/
 mcp-server/.venv/
 mcp-server/*.egg-info/
+Editor/dist/
