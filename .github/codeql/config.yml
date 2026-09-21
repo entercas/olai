@@ -1,0 +1,20 @@
+name: "Olai CodeQL config"
+
+paths-ignore:
+  # The vite single-file build: one line of minified TipTap, ProseMirror and markmap.
+  # Analysing it swamps the results with findings in third-party code we do not write.
+  - Olai/Resources/editor.html
+  - Editor/dist
+  - "**/node_modules"
+  - "**/venv"
+  - "**/.venv"
+  - "**/site-packages"
+  - build
+  # Tests describe attacks on purpose; they are not the shipped attack surface.
+  - OlaiCore/Tests
+  - mcp-server/tests
+
+queries:
+  # Default ruleset plus the extended one: lower-severity and more speculative rules,
+  # which is what we want for a codebase small enough to triage by hand.
+  - uses: security-and-quality

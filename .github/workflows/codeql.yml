@@ -1,0 +1,80 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    # Weekly, so newly published queries reach old code that nobody is touching.
+    - cron: "17 6 * * 1"
+
+jobs:
+  # JavaScript and Python need no build, so they run on Linux and stay fast.
+  analyze:
+    name: Analyze ${{ matrix.language }}
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript, python]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          config-file: ./.github/codeql/config.yml
+
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  # Swift has to be compiled for CodeQL to see it, so it needs a macOS runner with
+  # Xcode. Kept as a separate job: if the runner's Xcode cannot build the app, the
+  # JavaScript and Python results above still publish.
+  analyze-swift:
+    name: Analyze swift
+    runs-on: macos-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show the toolchain this runner has
+        run: |
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i macos || true
+
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: swift
+          build-mode: manual
+          config-file: ./.github/codeql/config.yml
+
+      # Signing is off: the runner has no Developer ID certificate, and CodeQL only
+      # needs the compile to succeed, not a distributable app.
+      - name: Build
+        run: |
+          xcodebuild \
+            -project Olai.xcodeproj \
+            -scheme Olai \
+            -destination 'platform=macOS' \
+            -derivedDataPath build/ci \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS="" \
+            build
+
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:swift"
