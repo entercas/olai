@@ -103,7 +103,10 @@ Then, in any Claude Code session:
 
 Six tools — `search_notes`, `get_page`, `list_pages`, `get_weekly_pages`,
 `get_goals_with_evidence` — and three prompts. The server is read-only, opens no
-sockets, and runs on the `python3` macOS ships: no packages to install. See
+sockets, and runs on the `python3` macOS ships: no packages to install.
+
+For another machine, `mcp-server/build-bundle.sh` produces a single 24 KB file that
+needs neither this repository nor GitHub nor `git`. See
 [docs/work-laptop.md](docs/work-laptop.md), including how to verify the no-network claim
 yourself.
 

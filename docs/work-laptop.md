@@ -20,23 +20,22 @@ get weekly summaries and priorities without installing anything.
 The repository is private, and it does not need to become public for any of this. Three
 ways in, easiest first.
 
-**Copy four files.** The standalone server is 32 KB of standard-library Python. Nothing
-else is required — no git, no GitHub account on that machine, no install:
+**Copy one file.** The standalone server builds into a single 24 KB `.pyz` — a zip
+application, which is a standard-library feature, not a package you install. No git, no
+GitHub account on that machine, nothing to install:
 
 ```bash
 # from a machine that has the repo
-cd mcp-server && tar czf ~/Desktop/olai-mcp.tgz olai_mcp/{__init__,mirror,tools,standalone}.py
+mcp-server/build-bundle.sh ~/Desktop/olai-mcp.pyz
 ```
 
-Move that file over however you normally would, then on the work laptop:
+Move that one file across however you normally would — email, AirDrop, a USB stick, your
+own file sync — and put it somewhere sensible, say `~/bin/olai-mcp.pyz`. That is the
+whole install. Nothing is unpacked and nothing is registered with the system.
 
-```bash
-mkdir -p ~/olai && tar xzf ~/Downloads/olai-mcp.tgz -C ~/olai
-```
-
-`~/olai` now holds `olai_mcp/` and that is the whole install.
-
-**Or clone the private repo.** Private is fine as long as the machine can authenticate:
+**Or clone the private repo.** Private is fine as long as the machine can authenticate --
+but this means signing in to GitHub on a work laptop, which is worth a thought if the
+account you have there is your employer's:
 
 ```bash
 gh auth login && gh repo clone entercas/olai ~/olai     # with the GitHub CLI
@@ -56,21 +55,30 @@ and `OLAI_ROOT` at wherever the mirror lives:
 ```bash
 claude mcp add olai --scope user \
   --env OLAI_ROOT="$HOME/Olai" \
-  --env PYTHONPATH="$HOME/olai" \
-  -- python3 -m olai_mcp.standalone
+  -- python3 "$HOME/bin/olai-mcp.pyz"
 ```
 
-Use `$HOME/olai/mcp-server` instead if you cloned the repository rather than copying the
-four files: `PYTHONPATH` has to point at the folder *containing* `olai_mcp`.
+If you cloned the repository instead of copying the single file, point at the package
+rather than the bundle -- `PYTHONPATH` has to name the folder *containing* `olai_mcp`:
+
+```bash
+claude mcp add olai --scope user \
+  --env OLAI_ROOT="$HOME/Olai" \
+  --env PYTHONPATH="$HOME/olai/mcp-server" \
+  -- python3 -m olai_mcp.standalone
+```
 
 `--scope user` is the part that is easy to miss: without it the default scope is
 `local`, meaning the server exists only in the directory you ran the command in. Notes
 are worth asking about from wherever you happen to be working, so register it for the
 user.
 
-That is the whole install. `olai_mcp.standalone` is an MCP server written against the
-Python standard library, so it runs on the `python3` macOS already has — verified on the
-stock 3.9. Nothing is pip-installed and no virtual environment is created.
+That is the whole install. The server is written against the Python standard library, so
+it runs on the `python3` macOS already has — verified on the stock 3.9, from an
+unrelated working directory, as a bundle and as a package. Nothing is pip-installed and
+no virtual environment is created.
+
+`gh` is not needed for any of this, and neither is `git`.
 
 Check it:
 
