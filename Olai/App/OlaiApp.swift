@@ -25,6 +25,7 @@ struct OlaiApp: App {
             RootView()
             #if os(macOS)
                 .environment(\.scheduleMirrorExport) { mirrorExporter.scheduleExport() }
+                .environment(\.mirrorRoot, mirrorSettings.root)
             #endif
                 // One task, not two: separate `.task` modifiers start together, and the
                 // cleanup has to finish first so the mirror is written from a store with

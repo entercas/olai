@@ -135,6 +135,7 @@ struct TreeActions {
     var addSubfolder: (Folder) -> Void
     var addFromTemplate: (NoteTemplate, Folder) -> Void
     var importTranscript: () -> Void
+    var importMarkdown: () -> Void
     var move: (DraggedItem, Folder?) -> Bool
     var rename: (TreeItem, Bool) -> Void
     var setArchived: (TreeItem, Bool) -> Void

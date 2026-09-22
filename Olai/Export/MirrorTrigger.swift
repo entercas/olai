@@ -15,3 +15,18 @@ extension EnvironmentValues {
         set { self[ScheduleMirrorExportKey.self] = newValue }
     }
 }
+
+/// Where the mirror is written, when there is one.
+///
+/// The importer needs it to refuse importing the mirror back into itself, which would
+/// make a second copy of every page. Nil on iOS, where there is no mirror at all.
+private struct MirrorRootKey: EnvironmentKey {
+    static let defaultValue: URL? = nil
+}
+
+extension EnvironmentValues {
+    var mirrorRoot: URL? {
+        get { self[MirrorRootKey.self] }
+        set { self[MirrorRootKey.self] = newValue }
+    }
+}

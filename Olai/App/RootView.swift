@@ -17,6 +17,7 @@ enum SidebarSelection: Hashable {
 struct RootView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scheduleMirrorExport) private var scheduleMirrorExport
+    @Environment(\.mirrorRoot) private var mirrorRoot
     @Query private var allFolders: [Folder]
     @Query private var allPages: [Page]
 
@@ -25,7 +26,9 @@ struct RootView: View {
     @State private var renameText: String = ""
     @State private var deleteTarget: TreeItem?
     @State private var isImportingTranscript = false
+    @State private var isImportingMarkdown = false
     @State private var importError: String?
+    @State private var importSummary: String?
 
     var body: some View {
         NavigationSplitView {
@@ -57,6 +60,35 @@ struct RootView: View {
             } catch {
                 importError = error.localizedDescription
             }
+        }
+        .fileImporter(
+            isPresented: $isImportingMarkdown,
+            allowedContentTypes: MarkdownFolderImport.readableTypes
+        ) { result in
+            do {
+                guard case let .success(url) = result else { return }
+                let summary = try MarkdownFolderImport.importFolder(
+                    at: url,
+                    into: insertionFolder,
+                    context: context,
+                    mirrorRoot: mirrorRoot
+                )
+                var message = "Imported \(summary.sentence)."
+                if !summary.skipped.isEmpty {
+                    message += "\n\nCould not read \(summary.skipped.count) file(s): "
+                        + summary.skipped.prefix(5).joined(separator: ", ")
+                        + (summary.skipped.count > 5 ? "…" : "")
+                }
+                importSummary = message
+                scheduleMirrorExport()
+            } catch {
+                importError = error.localizedDescription
+            }
+        }
+        .alert("Import finished", isPresented: importSummaryIsPresented) {
+            Button("OK", role: .cancel) { importSummary = nil }
+        } message: {
+            Text(importSummary ?? "")
         }
         .alert("Could not read that transcript", isPresented: importErrorIsPresented) {
             Button("OK", role: .cancel) { importError = nil }
@@ -111,6 +143,7 @@ struct RootView: View {
             },
             addFromTemplate: mirrored { template, folder in create(from: template, in: folder) },
             importTranscript: { isImportingTranscript = true },
+            importMarkdown: { isImportingMarkdown = true },
             move: { item, destination in
                 let moved = move(item, into: destination)
                 if moved { scheduleMirrorExport() }
@@ -239,6 +272,10 @@ struct RootView: View {
         scheduleMirrorExport()
     }
 
+    private var importSummaryIsPresented: Binding<Bool> {
+        Binding(get: { importSummary != nil }, set: { if !$0 { importSummary = nil } })
+    }
+
     private var importErrorIsPresented: Binding<Bool> {
         Binding(get: { importError != nil }, set: { if !$0 { importError = nil } })
     }
@@ -339,6 +376,7 @@ struct NewItemButtons: View {
             }
             Divider()
             Button("Import Transcript…", systemImage: "waveform") { actions.importTranscript() }
+            Button("Import Markdown Folder…", systemImage: "folder.badge.plus") { actions.importMarkdown() }
         } label: {
             Label("New Page", systemImage: "square.and.pencil")
         } primaryAction: {
