@@ -7,6 +7,7 @@ import { Transformer } from 'markmap-lib'
 import { Markmap } from 'markmap-view'
 import StarterKit from '@tiptap/starter-kit'
 import Highlight from '@tiptap/extension-highlight'
+import TextStyle from '@tiptap/extension-text-style'
 import Image from '@tiptap/extension-image'
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -68,6 +69,35 @@ function debounce(fn, ms) {
   }
   return wrapped
 }
+
+/** Text colour, as an attribute of TextStyle rather than a mark of its own, so that
+ *  colouring text that is already bold does not fight with the bold mark. */
+const TextColor = TextStyle.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      color: {
+        default: null,
+        parseHTML: (el) => el.style.color || null,
+        renderHTML: (attrs) => (attrs.color ? { style: `color: ${attrs.color}` } : {}),
+      },
+    }
+  },
+
+  addCommands() {
+    return {
+      ...this.parent?.(),
+      setTextColor:
+        (color) =>
+        ({ chain }) =>
+          chain().setMark('textStyle', { color }).run(),
+      unsetTextColor:
+        () =>
+        ({ chain }) =>
+          chain().setMark('textStyle', { color: null }).removeEmptyTextStyle().run(),
+    }
+  },
+})
 
 /** `[] ` and `[x] ` start a checklist. TaskList ships a wrapping rule for this, but a
  *  wrapping rule cannot apply inside an existing list item, which is exactly where
@@ -159,7 +189,8 @@ const editor = new Editor({
   extensions: [
     StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
     Underline,
-    Highlight,
+    TextColor,
+    Highlight.configure({ multicolor: true }),
     Link.configure({ openOnClick: false, autolink: true }),
     AttachmentImage.configure({ inline: false, allowBase64: false }),
     CheckboxInputRule,
@@ -206,6 +237,9 @@ function sendState() {
     bulletList: editor.isActive('bulletList'),
     orderedList: editor.isActive('orderedList'),
     taskList: editor.isActive('taskList'),
+    paragraph: editor.isActive('paragraph'),
+    textColor: editor.getAttributes('textStyle').color ?? null,
+    highlightColor: editor.getAttributes('highlight').color ?? null,
     blockquote: editor.isActive('blockquote'),
     canUndo: editor.can().undo(),
     canRedo: editor.can().redo(),
@@ -237,6 +271,14 @@ const COMMANDS = {
   underline: () => editor.chain().focus().toggleUnderline().run(),
   strike: () => editor.chain().focus().toggleStrike().run(),
   highlight: () => editor.chain().focus().toggleHighlight().run(),
+  setHighlightColor: ({ color } = {}) =>
+    color
+      ? editor.chain().focus().setHighlight({ color }).run()
+      : editor.chain().focus().unsetHighlight().run(),
+  setTextColor: ({ color } = {}) =>
+    color
+      ? editor.chain().focus().setTextColor(color).run()
+      : editor.chain().focus().unsetTextColor().run(),
   code: () => editor.chain().focus().toggleCode().run(),
   paragraph: () => editor.chain().focus().setParagraph().run(),
   h1: () => editor.chain().focus().toggleHeading({ level: 1 }).run(),

@@ -26,6 +26,9 @@ struct EditorState: Equatable, Decodable {
     var bulletList = false
     var orderedList = false
     var taskList = false
+    var paragraph = false
+    var textColor: String?
+    var highlightColor: String?
     var blockquote = false
     var canUndo = false
     var canRedo = false
@@ -78,7 +81,19 @@ final class EditorController: NSObject {
 
     func run(_ command: String) {
         guard let encoded = jsString(command) else { return }
-        evaluate("window.olai.command({name: \(encoded)})")
+        evaluate("window.olai.command({name: \(encoded)})", givingEditorFocus: true)
+    }
+
+    /// A command with arguments. `run(_:)` covers the ones that need none.
+    func run(_ command: String, payload: [String: String]) {
+        guard
+            let name = jsString(command),
+            let data = try? JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys])
+        else { return }
+        evaluate(
+            "window.olai.command({name: \(name), payload: \(String(decoding: data, as: UTF8.self))})",
+            givingEditorFocus: true
+        )
     }
 
     func insertText(_ text: String) {
@@ -112,7 +127,20 @@ final class EditorController: NSObject {
         run("flush")
     }
 
-    private func evaluate(_ script: String) {
+    /// - Parameter givingEditorFocus: hands first responder back to the web view before
+    ///   the script runs. Clicking a SwiftUI control in the toolbar takes it away, and
+    ///   the editor's own `focus()` cannot put a caret back into a view that is not the
+    ///   window's responder -- the command then applies to nothing and the click looks
+    ///   like it did nothing. Only commands ask for this: doing it on every script would
+    ///   pull focus out of the title field whenever a page finished loading.
+    private func evaluate(_ script: String, givingEditorFocus: Bool = false) {
+        #if os(macOS)
+        if givingEditorFocus, let webView, let window = webView.window,
+           window.firstResponder !== webView {
+            window.makeFirstResponder(webView)
+        }
+        #endif
+
         // Only the call being made is logged, never its arguments: the script carries
         // note text and dictation, and NSLog writes to the system log.
         let call = script.prefix(while: { $0 != "(" })
