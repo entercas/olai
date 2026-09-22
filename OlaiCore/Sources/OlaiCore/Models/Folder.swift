@@ -65,9 +65,15 @@ public extension Folder {
 
     /// True when `candidate` is this folder or one of its descendants. Used to stop a
     /// move from parenting a folder inside its own subtree.
-    func contains(_ candidate: Folder) -> Bool {
+    ///
+    /// Depth-limited like `pathComponents`, and for the same reason. Moves made here
+    /// cannot build a cycle, but two devices can: one parents A under B while the other
+    /// parents B under A, each legal on its own, and CloudKit merges them into a loop.
+    /// Recursing into that never returns.
+    func contains(_ candidate: Folder, depth: Int = 0) -> Bool {
         if candidate.id == id { return true }
-        return sortedChildren.contains { $0.contains(candidate) }
+        guard depth < 64 else { return false }
+        return (children ?? []).contains { $0.contains(candidate, depth: depth + 1) }
     }
 
     /// Whether this folder may become a child of `destination` (nil meaning the top

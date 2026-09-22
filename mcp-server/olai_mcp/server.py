@@ -14,14 +14,6 @@ from . import tools
 mcp = MCPServer("olai")
 
 
-def _pages() -> list[mirror.Page]:
-    return mirror.load_pages(mirror.mirror_root())
-
-
-def _dump(value: Any) -> str:
-    return json.dumps(value, indent=2, ensure_ascii=False)
-
-
 # MARK: Tools and prompts
 #
 # The implementations live in tools.py, shared with the standard-library server in

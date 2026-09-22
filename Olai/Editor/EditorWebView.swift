@@ -37,6 +37,10 @@ struct EditorWebView: PlatformViewRepresentable {
         webView.scrollView.bounces = false
         #endif
         webView.allowsLinkPreview = false
+        // A Content-Security-Policy cannot restrict top-level navigation, so without
+        // this the page could send itself anywhere -- `window.location = "https://..."`
+        // would load a remote site inside the app, carrying whatever it put in the URL.
+        webView.navigationDelegate = controller
 
         controller.attach(webView)
 

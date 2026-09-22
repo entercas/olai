@@ -396,7 +396,20 @@ window.olai = {
     // `addToHistory: false`. Loading a page is not an edit: left in the history,
     // one undo too many on a freshly opened page walks back past the load and
     // blanks the document.
-    const doc = editor.schema.nodeFromJSON(json ?? EMPTY_DOC)
+    // Swift sends the document as a JSON string rather than splicing it into the
+    // expression it evaluates, so nothing stored in a page is ever treated as source.
+    let parsed = EMPTY_DOC
+    if (typeof json === 'string') {
+      try {
+        parsed = JSON.parse(json)
+      } catch {
+        parsed = EMPTY_DOC
+      }
+    } else if (json) {
+      parsed = json
+    }
+
+    const doc = editor.schema.nodeFromJSON(parsed)
     const transaction = editor.state.tr
       .replaceWith(0, editor.state.doc.content.size, doc.content)
       .setMeta('addToHistory', false)

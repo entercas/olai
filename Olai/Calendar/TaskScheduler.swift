@@ -24,6 +24,19 @@ enum TaskScheduler {
     }
 
     private static let store = EKEventStore()
+    private static let createdKey = "tasks.reminderIDs"
+
+    /// The reminders Olai made. A task block carries the identifier of its reminder, and
+    /// a page arrives from other devices over CloudKit, so that identifier is not
+    /// something to hand to EventKit unchecked -- it names any item in the user's
+    /// Reminders. Olai only updates or deletes the ones it created itself.
+    ///
+    /// Per device on purpose: an EventKit identifier is not portable between them, so a
+    /// reminder scheduled on another Mac was never reusable here anyway.
+    private static var created: Set<String> {
+        get { Set(UserDefaults.standard.stringArray(forKey: createdKey) ?? []) }
+        set { UserDefaults.standard.set(Array(newValue), forKey: createdKey) }
+    }
 
     static func requestAccess() async throws {
         let granted = try await store.requestFullAccessToReminders()
@@ -37,7 +50,11 @@ enum TaskScheduler {
         try await requestAccess()
 
         let reminder: EKReminder
-        if let existingID, let found = store.calendarItem(withIdentifier: existingID) as? EKReminder {
+        if
+            let existingID,
+            created.contains(existingID),
+            let found = store.calendarItem(withIdentifier: existingID) as? EKReminder
+        {
             reminder = found
             reminder.alarms?.forEach(reminder.removeAlarm)
         } else {
@@ -56,15 +73,20 @@ enum TaskScheduler {
         reminder.addAlarm(EKAlarm(absoluteDate: due))
 
         try store.save(reminder, commit: true)
+        created.insert(reminder.calendarItemIdentifier)
         return reminder.calendarItemIdentifier
     }
 
     static func remove(id: String) async throws {
         try await requestAccess()
-        guard let reminder = store.calendarItem(withIdentifier: id) as? EKReminder else {
+        guard
+            created.contains(id),
+            let reminder = store.calendarItem(withIdentifier: id) as? EKReminder
+        else {
             throw Failure.notFound
         }
         try store.remove(reminder, commit: true)
+        created.remove(id)
     }
 
     /// How a due date reads on the task's chip in the editor.

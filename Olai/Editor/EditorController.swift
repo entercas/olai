@@ -64,8 +64,8 @@ final class EditorController: NSObject {
             pendingDocument = (document, readOnly)
             return
         }
-        let text = String(decoding: document, as: UTF8.self)
-        evaluate("window.olai.setDocument({json: \(text), readOnly: \(readOnly)})")
+        guard let encoded = jsString(String(decoding: document, as: UTF8.self)) else { return }
+        evaluate("window.olai.setDocument({json: \(encoded), readOnly: \(readOnly)})")
     }
 
     func applyTheme(dark: Bool) {
@@ -77,7 +77,8 @@ final class EditorController: NSObject {
     }
 
     func run(_ command: String) {
-        evaluate("window.olai.command({name: '\(command)'})")
+        guard let encoded = jsString(command) else { return }
+        evaluate("window.olai.command({name: \(encoded)})")
     }
 
     func insertText(_ text: String) {
@@ -112,9 +113,12 @@ final class EditorController: NSObject {
     }
 
     private func evaluate(_ script: String) {
+        // Only the call being made is logged, never its arguments: the script carries
+        // note text and dictation, and NSLog writes to the system log.
+        let call = script.prefix(while: { $0 != "(" })
         webView?.evaluateJavaScript(script) { _, error in
             if let error {
-                NSLog("Olai editor: \(script.prefix(60))… failed: \(error)")
+                NSLog("Olai editor: \(call) failed: \(error)")
             }
         }
     }
@@ -123,6 +127,23 @@ final class EditorController: NSObject {
     private func jsString(_ value: String) -> String? {
         guard let data = try? JSONEncoder().encode(value) else { return nil }
         return String(decoding: data, as: UTF8.self)
+    }
+}
+
+extension EditorController: WKNavigationDelegate {
+    /// The editor is a local document, not a browser. The only navigation it ever needs
+    /// is the one that loads it; everything else -- a link, a redirect, a script setting
+    /// `window.location` -- is refused, so nothing can replace the editor with a remote
+    /// page or send note content out in a URL.
+    nonisolated func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void
+    ) {
+        let isOurPage = navigationAction.request.url?.scheme == OlaiSchemeHandler.scheme
+        MainActor.assumeIsolated {
+            decisionHandler(isOurPage ? .allow : .cancel)
+        }
     }
 }
 
