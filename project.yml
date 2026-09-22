@@ -17,8 +17,10 @@ settings:
     CODE_SIGN_STYLE: Automatic
     SWIFT_VERSION: "6.0"
     SWIFT_STRICT_CONCURRENCY: complete
-    MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: "1"
+    # Keep in step with the git tag: the first two releases both shipped reporting
+    # 0.1.0, so Get Info disagreed with the release they came from.
+    MARKETING_VERSION: "1.2.0"
+    CURRENT_PROJECT_VERSION: "3"
   configs:
     Release:
       # Notarisation requires the hardened runtime. It costs nothing in a debug build
