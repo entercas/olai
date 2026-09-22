@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
+import conftest
 from olai_mcp import mirror
 
 
@@ -72,6 +73,58 @@ def test_search_matches_title_and_body_and_returns_lines(mirror_root: Path):
 def test_search_limit_is_respected(mirror_root: Path):
     pages = mirror.load_pages(mirror_root)
     assert len(mirror.search_pages(pages, "e", limit=2)) <= 2
+
+
+def test_search_returns_the_newest_matches_first(tmp_path: Path):
+    """The limit truncates, so the order decides which pages are lost. Sorting the
+    dates ascending returned the oldest matches and dropped the recent ones -- the
+    opposite of what "what did I do lately" needs."""
+    root = tmp_path / "Olai"
+    root.mkdir()
+    for n, stamp in enumerate(
+        ["2026-01-01T09:00:00Z", "2026-06-01T09:00:00Z", "2026-09-01T09:00:00Z"]
+    ):
+        (root / f"note-{n}.md").write_text(
+            conftest._page(
+                page_id=f"BBBBBBB1-0000-0000-0000-00000000000{n}",
+                title=f"Note {n}",
+                updated=stamp,
+                body="shared keyword",
+            ),
+            encoding="utf-8",
+        )
+
+    hits = mirror.search_pages(mirror.load_pages(root), "shared keyword")
+    assert [hit["title"] for hit in hits] == ["Note 2", "Note 1", "Note 0"]
+
+    # And the one kept under a limit is the newest, not the oldest.
+    assert [h["title"] for h in mirror.search_pages(mirror.load_pages(root), "shared keyword", limit=1)] == ["Note 2"]
+
+
+def test_a_title_match_still_outranks_a_newer_body_match(tmp_path: Path):
+    root = tmp_path / "Olai"
+    root.mkdir()
+    (root / "old-title.md").write_text(
+        conftest._page(
+            page_id="CCCCCCC1-0000-0000-0000-000000000001",
+            title="Budget review",
+            updated="2026-01-01T09:00:00Z",
+            body="nothing relevant here",
+        ),
+        encoding="utf-8",
+    )
+    (root / "new-body.md").write_text(
+        conftest._page(
+            page_id="CCCCCCC1-0000-0000-0000-000000000002",
+            title="Standup",
+            updated="2026-09-01T09:00:00Z",
+            body="talked about the budget",
+        ),
+        encoding="utf-8",
+    )
+
+    hits = mirror.search_pages(mirror.load_pages(root), "budget")
+    assert [hit["title"] for hit in hits] == ["Budget review", "Standup"]
 
 
 def test_weekly_pages_go_back_the_requested_number_of_weeks(mirror_root: Path):

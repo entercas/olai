@@ -95,6 +95,31 @@ struct MirrorFileTests {
         #expect(contents.hasSuffix("## Wins\n"))
     }
 
+    /// The exporter deletes any attachment file this list does not name, so it has to
+    /// name every attachment the page actually has, and agree with where each was written.
+    @Test func attachmentPathsCoverEveryAttachmentThePageHas() throws {
+        let context = try ModelContext(ModelContainer(
+            for: OlaiSchema.schema,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        ))
+        let folder = Folder(name: "Work")
+        let page = Page(title: "Notes", folder: folder)
+        context.insert(folder)
+        context.insert(page)
+
+        let withBytes = Attachment(mimeType: "image/png", data: Data([0x1]), page: page)
+        let withoutBytes = Attachment(mimeType: "image/png", data: nil, page: page)
+        context.insert(withBytes)
+        context.insert(withoutBytes)
+
+        let paths = MirrorFile.attachmentPaths(for: page)
+
+        #expect(paths == [MirrorFile.attachmentRelativePath(for: withBytes, page: page)])
+        // An attachment with no bytes is never written, so claiming it would keep a
+        // file that does not exist -- and a file that does exist must be claimed.
+        #expect(!paths.contains(MirrorFile.attachmentRelativePath(for: withoutBytes, page: page)))
+    }
+
     @Test func attachmentsAreWrittenBesideTheirPage() throws {
         let context = try makeContext()
         let folder = Folder(name: "Work")

@@ -40,6 +40,42 @@ public enum TipTapDocument {
         return blocks.map(text(inNode:)).joined(separator: "\n")
     }
 
+    /// The attachments a document actually references, by id.
+    ///
+    /// An image node carries `attachment://<uuid>`; anything else -- an external URL,
+    /// a malformed source -- is not an attachment of ours and is ignored. Returns an
+    /// empty set for data that is not a document, which callers must not read as
+    /// "this page references nothing": deleting on that basis would throw away the
+    /// attachments of a page whose body failed to parse.
+    public static func attachmentIDs(in data: Data) -> Set<UUID>? {
+        guard
+            let object = try? JSONSerialization.jsonObject(with: data),
+            let doc = object as? [String: Any],
+            doc["type"] as? String == "doc"
+        else { return nil }
+
+        var found: Set<UUID> = []
+        collectAttachments(in: doc["content"] as? [[String: Any]] ?? [], into: &found)
+        return found
+    }
+
+    private static func collectAttachments(in nodes: [[String: Any]], into found: inout Set<UUID>) {
+        for node in nodes {
+            if
+                node["type"] as? String == "image",
+                let attributes = node["attrs"] as? [String: Any],
+                let source = attributes["src"] as? String,
+                source.hasPrefix(attachmentPrefix),
+                let id = UUID(uuidString: String(source.dropFirst(attachmentPrefix.count)))
+            {
+                found.insert(id)
+            }
+            collectAttachments(in: node["content"] as? [[String: Any]] ?? [], into: &found)
+        }
+    }
+
+    private static let attachmentPrefix = "attachment://"
+
     private static func text(inNode node: [String: Any]) -> String {
         if let text = node["text"] as? String { return text }
         let children = node["content"] as? [[String: Any]] ?? []

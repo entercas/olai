@@ -31,6 +31,17 @@ public enum MirrorFile {
             : "\(directory)/\(attachmentsDirectory)/\(name)"
     }
 
+    /// Where every attachment of `page` belongs, relative to the mirror root.
+    ///
+    /// Derived from the model alone: the exporter uses this to decide which files on
+    /// disk are still claimed, and that answer must not depend on whether a write
+    /// happened to succeed, or a live image would look orphaned and be deleted.
+    public static func attachmentPaths(for page: Page) -> [String] {
+        (page.attachments ?? [])
+            .filter { $0.data != nil }
+            .map { attachmentRelativePath(for: $0, page: page) }
+    }
+
     /// YAML frontmatter followed by the converted body.
     public static func contents(for page: Page) -> String {
         let extensions = (page.attachments ?? []).reduce(into: [UUID: String]()) { map, attachment in

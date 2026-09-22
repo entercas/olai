@@ -222,7 +222,12 @@ def search_pages(pages: list[Page], query: str, limit: int = 20) -> list[dict]:
             }
         )
 
-    results.sort(key=lambda item: (item["_rank"], item["updated"] or ""), reverse=False)
+    # Two stable passes rather than one compound key: rank ascending so title matches
+    # lead, but `updated` descending within a rank so the newest page wins -- a single
+    # key cannot sort one field up and the other down, and sorting both ascending
+    # handed back the oldest matches and then truncated the recent ones away.
+    results.sort(key=lambda item: item["updated"] or "", reverse=True)
+    results.sort(key=lambda item: item["_rank"])
     for item in results:
         del item["_rank"]
     return results[:limit]

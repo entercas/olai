@@ -391,7 +391,17 @@ function replaceDictation(spoken, utterance) {
 window.olai = {
   setDocument({ json, readOnly }) {
     editor.setEditable(!readOnly)
-    editor.commands.setContent(json ?? EMPTY_DOC, false)
+
+    // Dispatched by hand rather than through setContent so the step can be marked
+    // `addToHistory: false`. Loading a page is not an edit: left in the history,
+    // one undo too many on a freshly opened page walks back past the load and
+    // blanks the document.
+    const doc = editor.schema.nodeFromJSON(json ?? EMPTY_DOC)
+    const transaction = editor.state.tr
+      .replaceWith(0, editor.state.doc.content.size, doc.content)
+      .setMeta('addToHistory', false)
+    editor.view.dispatch(transaction)
+
     if (mindMapVisible) renderMindMap()
     sendState()
   },

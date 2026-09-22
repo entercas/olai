@@ -25,8 +25,16 @@ struct OlaiApp: App {
             RootView()
             #if os(macOS)
                 .environment(\.scheduleMirrorExport) { mirrorExporter.scheduleExport() }
-                .task { mirrorExporter.exportNow() }
             #endif
+                // One task, not two: separate `.task` modifiers start together, and the
+                // cleanup has to finish first so the mirror is written from a store with
+                // no unreachable attachments left in it.
+                .task {
+                    AttachmentCleanup.run(in: modelContainer.mainContext)
+                    #if os(macOS)
+                    mirrorExporter.exportNow()
+                    #endif
+                }
         }
         .modelContainer(modelContainer)
         #if os(macOS)
