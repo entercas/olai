@@ -106,6 +106,7 @@ struct TreeActions {
     var rename: (TreeItem, Bool) -> Void
     var setArchived: (TreeItem, Bool) -> Void
     var togglePinned: (Page) -> Void
+    var tagChanged: () -> Void
     var delete: (TreeItem) -> Void
 }
 
@@ -151,6 +152,12 @@ private struct FolderDisclosure: View {
     /// would also cover every child row inside it.
     private var row: some View {
         HStack(spacing: 4) {
+            // The binder tab: a coloured bar on the leading edge, drawn only when the
+            // folder has been given a colour so an untagged library stays quiet.
+            RoundedRectangle(cornerRadius: 1.5)
+                .fill(FolderTag.color(folder.colorIndex) ?? .clear)
+                .frame(width: 3, height: 15)
+
             Label(folder.name, systemImage: "folder")
                 .lineLimit(1)
             Spacer(minLength: 2)
@@ -218,6 +225,7 @@ private struct FolderDisclosure: View {
             templateMenu
             Divider()
             Button("Rename…") { actions.rename(.folder(folder), false) }
+            FolderTagMenu(folder: folder, onChange: actions.tagChanged)
             MoveToMenu(allFolders: allFolders) { destination in
                 _ = actions.move(DraggedItem(kind: .folder, id: folder.id), destination)
             } isEnabled: { destination in

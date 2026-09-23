@@ -14,6 +14,12 @@ public final class Folder {
     public var isArchived: Bool = false
     public var createdAt: Date = Date()
 
+    /// Which colour the folder is tabbed with, as an index into the palette the app
+    /// draws. Stored as a number rather than a colour so the model stays free of any
+    /// UI framework, and defaulted like every other property because CloudKit requires
+    /// it -- 0 means untagged.
+    public var colorIndex: Int = 0
+
     public var parent: Folder?
 
     @Relationship(deleteRule: .cascade, inverse: \Folder.parent)
@@ -28,6 +34,7 @@ public final class Folder {
         sortOrder: Int = 0,
         isArchived: Bool = false,
         createdAt: Date = Date(),
+        colorIndex: Int = 0,
         parent: Folder? = nil
     ) {
         self.id = id
@@ -35,6 +42,7 @@ public final class Folder {
         self.sortOrder = sortOrder
         self.isArchived = isArchived
         self.createdAt = createdAt
+        self.colorIndex = colorIndex
         self.parent = parent
     }
 }

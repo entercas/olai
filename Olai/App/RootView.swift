@@ -16,6 +16,8 @@ struct RootView: View {
     @Query private var allFolders: [Folder]
     @Query private var allPages: [Page]
 
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    @AppStorage("layout.pagesPaneCollapsed") private var isPagesCollapsed = false
     @State private var scope: NotebookScope? = .allPages
     @State private var selectedPage: UUID?
     @State private var tabs = OpenTabs()
@@ -28,14 +30,32 @@ struct RootView: View {
     @State private var importSummary: String?
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             SidebarView(scope: $scope, actions: actions)
                 .navigationSplitViewColumnWidth(min: 170, ideal: 210, max: 300)
         } content: {
             PageListView(scope: scope, openPage: $selectedPage, actions: actions)
-                .navigationSplitViewColumnWidth(min: 200, ideal: 260, max: 380)
+                // Collapsed by pinning the column to no width: a three-column split view
+                // can hide its sidebar or everything but the detail, and has no state for
+                // "sidebar showing, pages hidden".
+                .navigationSplitViewColumnWidth(
+                    min: isPagesCollapsed ? 0 : 200,
+                    ideal: isPagesCollapsed ? 0 : 260,
+                    max: isPagesCollapsed ? 0 : 380
+                )
+                .opacity(isPagesCollapsed ? 0 : 1)
+                // The rail stands in for the folders while they are hidden.
+                .safeAreaInset(edge: .leading, spacing: 0) {
+                    if isSidebarCollapsed && !isPagesCollapsed { rail }
+                }
+                .toolbar {
+                    ToolbarItem(placement: .navigation) { layoutMenu }
+                }
         } detail: {
             DetailView(tabs: tabs)
+                .safeAreaInset(edge: .leading, spacing: 0) {
+                    if isSidebarCollapsed && isPagesCollapsed { rail }
+                }
         }
         #if os(macOS)
         .frame(minWidth: 900, minHeight: 440)
@@ -127,6 +147,48 @@ struct RootView: View {
         }
     }
 
+    private var isSidebarCollapsed: Bool {
+        columnVisibility != .all
+    }
+
+    /// Which columns are showing. Both toggles live here rather than relying on the
+    /// split view's own sidebar button, which does not report back through the
+    /// visibility binding -- the tag rail would never learn the folders had gone.
+    private var layoutMenu: some View {
+        Menu {
+            Toggle(isOn: Binding(
+                get: { !isSidebarCollapsed },
+                set: { showing in
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        columnVisibility = showing ? .all : .doubleColumn
+                    }
+                }
+            )) {
+                Label("Folders", systemImage: "folder")
+            }
+
+            Toggle(isOn: Binding(
+                get: { !isPagesCollapsed },
+                set: { showing in
+                    withAnimation(.easeInOut(duration: 0.2)) { isPagesCollapsed = !showing }
+                }
+            )) {
+                Label("Page List", systemImage: "list.bullet")
+            }
+        } label: {
+            Label("Layout", systemImage: "sidebar.squares.leading")
+        }
+        .help("Show or hide the columns")
+    }
+
+    private var rail: some View {
+        FolderTagRail(
+            folders: allFolders.filter { $0.parent == nil && !$0.isArchived }
+                .sorted(by: Folder.displayOrder),
+            scope: $scope
+        )
+    }
+
     private var actions: TreeActions {
         // Each action is wrapped so the mirror hears about it; forgetting one is the
         // only way the export can fall behind.
@@ -166,6 +228,8 @@ struct RootView: View {
             rename: beginRename,
             setArchived: mirrored(setArchived),
             togglePinned: mirrored(NoteTree.togglePinned),
+            // A tag changes nothing the mirror writes, but the store still has to save.
+            tagChanged: { try? context.save() },
             delete: { deleteTarget = $0 }
         )
     }
