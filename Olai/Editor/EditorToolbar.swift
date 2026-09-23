@@ -14,6 +14,7 @@ struct EditorToolbar: View {
     private enum Metrics {
         static let symbol: CGFloat = 16
         static let width: CGFloat = 34
+        static let wideWidth: CGFloat = 46
         static let height: CGFloat = 30
         static let corner: CGFloat = 7
         static let spacing: CGFloat = 3
@@ -58,21 +59,14 @@ struct EditorToolbar: View {
 
                 divider
 
-                // Spelled out rather than drawn as three differently sized letters: the
-                // symbols read as "make the text bigger", which is not what they do.
-                group {
-                    label("H1", "Heading 1", on: state.h1) { controller.run("h1") }
-                    label("H2", "Heading 2", on: state.h2) { controller.run("h2") }
-                    label("H3", "Heading 3", on: state.h3) { controller.run("h3") }
-                    label("Body", "Body Text", on: state.paragraph) { controller.run("paragraph") }
-                }
+                styleMenu
 
                 divider
 
                 group {
-                    button("list.bullet", "Bullet List", on: state.bulletList) { controller.run("bulletList") }
-                    button("list.number", "Numbered List", on: state.orderedList) { controller.run("orderedList") }
-                    button("checklist", "Checklist", on: state.taskList) { controller.run("taskList") }
+                    button("list.bullet", "Bullet List", on: state.bulletList, wide: true) { controller.run("bulletList") }
+                    button("list.number", "Numbered List", on: state.orderedList, wide: true) { controller.run("orderedList") }
+                    button("checklist", "Checklist", on: state.taskList, wide: true) { controller.run("taskList") }
                     button("increase.indent", "Indent") { controller.run("indent") }
                     button("decrease.indent", "Outdent") { controller.run("outdent") }
                 }
@@ -99,6 +93,7 @@ struct EditorToolbar: View {
                         state.task.reminderID == nil ? "bell" : "bell.fill",
                         reminderTitle,
                         on: state.task.reminderID != nil,
+                        wide: true,
                         action: scheduleTask
                     )
                 }
@@ -107,6 +102,48 @@ struct EditorToolbar: View {
             .padding(.vertical, 7)
         }
         .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+    }
+
+    /// Paragraph style as one control. Four separate buttons said the same thing four
+    /// times over and still left the current style to be inferred from which one was lit.
+    private var styleMenu: some View {
+        Menu {
+            ForEach(BlockStyle.all) { style in
+                Button {
+                    controller.run(style.command)
+                } label: {
+                    if style.command == currentStyle.command {
+                        Label(style.name, systemImage: "checkmark")
+                    } else {
+                        Text(style.name)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(currentStyle.name)
+                    .font(.system(size: 12, weight: .medium))
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(width: 96, height: Metrics.height)
+            .contentShape(.rect)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .frame(width: 96)
+        .pointingHandCursor()
+        .help("Paragraph Style")
+        .accessibilityLabel("Paragraph Style")
+    }
+
+    private var currentStyle: BlockStyle {
+        if state.h1 { return BlockStyle.all[1] }
+        if state.h2 { return BlockStyle.all[2] }
+        if state.h3 { return BlockStyle.all[3] }
+        return BlockStyle.all[0]
     }
 
     /// Only a checklist item can be scheduled, so a caret anywhere else used to leave
@@ -152,43 +189,39 @@ struct EditorToolbar: View {
 
     // MARK: Controls
 
+    /// - Parameter wide: for the controls reached for constantly -- lists, checklist,
+    ///   the reminder -- which were the same 34pt as everything else and easy to miss.
     private func button(
         _ symbol: String,
         _ title: String,
         on: Bool = false,
         enabled: Bool = true,
+        wide: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
-        control(title: title, on: on, enabled: enabled, action: action) {
+        control(
+            title: title,
+            on: on,
+            enabled: enabled,
+            width: wide ? Metrics.wideWidth : Metrics.width,
+            action: action
+        ) {
             Image(systemName: symbol)
-                .font(.system(size: Metrics.symbol, weight: .medium))
+                .font(.system(size: wide ? Metrics.symbol + 2 : Metrics.symbol, weight: .medium))
         }
-    }
-
-    private func label(
-        _ text: String,
-        _ title: String,
-        on: Bool = false,
-        action: @escaping () -> Void
-    ) -> some View {
-        control(title: title, on: on, enabled: true, action: action) {
-            Text(text)
-                .font(.system(size: 12, weight: .semibold))
-                .monospacedDigit()
-        }
-        .frame(minWidth: text.count > 2 ? 44 : Metrics.width)
     }
 
     private func control<Content: View>(
         title: String,
         on: Bool,
         enabled: Bool,
+        width: CGFloat? = nil,
         action: @escaping () -> Void,
         @ViewBuilder content: () -> Content
     ) -> some View {
         Button(action: action) {
             content()
-                .frame(minWidth: Metrics.width, minHeight: Metrics.height)
+                .frame(minWidth: width ?? Metrics.width, minHeight: Metrics.height)
                 .contentShape(.rect)
                 .background(
                     RoundedRectangle(cornerRadius: Metrics.corner)
@@ -280,6 +313,21 @@ extension View {
         self
         #endif
     }
+}
+
+/// What the style menu offers. Ordered so the first entry is the one a page is in by
+/// default, which is also what the menu falls back to showing.
+struct BlockStyle: Identifiable {
+    let name: String
+    let command: String
+    var id: String { command }
+
+    static let all: [BlockStyle] = [
+        BlockStyle(name: "Body", command: "paragraph"),
+        BlockStyle(name: "Heading 1", command: "h1"),
+        BlockStyle(name: "Heading 2", command: "h2"),
+        BlockStyle(name: "Heading 3", command: "h3"),
+    ]
 }
 
 /// The colours offered for text and highlight. Deliberately a short list: a full picker
