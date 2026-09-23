@@ -4,6 +4,7 @@ import SwiftUI
 @main
 struct OlaiApp: App {
     private let modelContainer = OlaiModelContainer.make()
+    @State private var layout = LayoutState()
 
     #if os(macOS)
     @State private var mirrorSettings = MirrorSettings()
@@ -23,6 +24,7 @@ struct OlaiApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .environment(layout)
             #if os(macOS)
                 .environment(\.scheduleMirrorExport) { mirrorExporter.scheduleExport() }
                 .environment(\.mirrorRoot, mirrorSettings.root)
@@ -42,6 +44,7 @@ struct OlaiApp: App {
         .defaultSize(width: 1040, height: 700)
         .commands {
             SidebarCommands()
+            LayoutCommands(layout: layout)
         }
         #endif
 

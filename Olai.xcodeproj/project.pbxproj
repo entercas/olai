@@ -29,6 +29,7 @@
 		8188E5B3E55F5DDDF1E77EB4 /* PageListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8440ABDB849E44F4B6823B3A /* PageListView.swift */; };
 		8E2D4C93EC8C790C57D61FF3 /* NoteTree+Templates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2238EE7DEC5F9936E54682DA /* NoteTree+Templates.swift */; };
 		985685FD76E0141285A916BB /* FolderTags.swift in Sources */ = {isa = PBXBuildFile; fileRef = 748D9D7A04E1D1B7CE2F36EA /* FolderTags.swift */; };
+		B1DBD184E965CCEA8FFC8D38 /* LayoutState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33D26B6FA246ABC1B4A29196 /* LayoutState.swift */; };
 		B341FEC01DE0B591B59A3C3B /* SidebarExpansion.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8E2A25E0D44A18FB5420ACF /* SidebarExpansion.swift */; };
 		B7E6216ACE6F3A387EE94AFD /* interview.json in Resources */ = {isa = PBXBuildFile; fileRef = E0E8EC523552DC170A577376 /* interview.json */; };
 		B8CB4BF0E14536659A6E2B41 /* OlaiSchemeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A73FE08BD20F369CB78582E /* OlaiSchemeHandler.swift */; };
@@ -57,6 +58,7 @@
 		2238EE7DEC5F9936E54682DA /* NoteTree+Templates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NoteTree+Templates.swift"; sourceTree = "<group>"; };
 		262E63A50CCEF0734C2E5F09 /* goals.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = goals.json; sourceTree = "<group>"; };
 		278B5D81625AFC5C3AA59CC5 /* EditorToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorToolbar.swift; sourceTree = "<group>"; };
+		33D26B6FA246ABC1B4A29196 /* LayoutState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutState.swift; sourceTree = "<group>"; };
 		395C821C5F0BC57CF6BF6B63 /* TranscriptImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptImport.swift; sourceTree = "<group>"; };
 		3A73FE08BD20F369CB78582E /* OlaiSchemeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OlaiSchemeHandler.swift; sourceTree = "<group>"; };
 		3A892132E8E5E1340771205D /* MirrorTrigger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorTrigger.swift; sourceTree = "<group>"; };
@@ -235,6 +237,7 @@
 			isa = PBXGroup;
 			children = (
 				11BBE7CFC79BB378AB06110D /* AttachmentCleanup.swift */,
+				33D26B6FA246ABC1B4A29196 /* LayoutState.swift */,
 				4F94C1D7CE0859841ACE0F22 /* OlaiApp.swift */,
 				CC45749CCA0B22FFD810C16B /* OlaiModelContainer.swift */,
 				4359633DD856E081E1F34169 /* RootView.swift */,
@@ -334,6 +337,7 @@
 				02FBE5B39DCB4F6857E88518 /* EditorToolbar.swift in Sources */,
 				407055C1FD60D25CE18C8C91 /* EditorWebView.swift in Sources */,
 				985685FD76E0141285A916BB /* FolderTags.swift in Sources */,
+				B1DBD184E965CCEA8FFC8D38 /* LayoutState.swift in Sources */,
 				8069A0BB70EA4F5F11623F17 /* MirrorExporter.swift in Sources */,
 				DF9D40FE98FABE1BE1DF33C0 /* MirrorSettings.swift in Sources */,
 				04948E1ABE043EF36414A292 /* MirrorSettingsView.swift in Sources */,
@@ -425,7 +429,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = YQSS8GQ6Y4;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -446,7 +450,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.2.0;
+				MARKETING_VERSION = 1.3.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -494,7 +498,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = YQSS8GQ6Y4;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -510,7 +514,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.2.0;
+				MARKETING_VERSION = 1.3.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
