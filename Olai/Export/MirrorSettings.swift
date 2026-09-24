@@ -42,7 +42,7 @@ final class MirrorSettings {
                 includingResourceValuesForKeys: nil,
                 relativeTo: nil
             )
-            UserDefaults.standard.set(bookmark, forKey: Self.bookmarkKey)
+            AppEnvironment.defaults.set(bookmark, forKey: Self.bookmarkKey)
         } catch {
             // Without a bookmark the choice cannot survive a relaunch, though it still
             // mirrors for this run.
@@ -52,12 +52,12 @@ final class MirrorSettings {
 
     func clear() {
         endAccess()
-        UserDefaults.standard.removeObject(forKey: Self.bookmarkKey)
+        AppEnvironment.defaults.removeObject(forKey: Self.bookmarkKey)
         root = nil
     }
 
     private func restore() {
-        guard let bookmark = UserDefaults.standard.data(forKey: Self.bookmarkKey) else { return }
+        guard let bookmark = AppEnvironment.defaults.data(forKey: Self.bookmarkKey) else { return }
 
         var isStale = false
         guard
@@ -68,7 +68,7 @@ final class MirrorSettings {
                 bookmarkDataIsStale: &isStale
             )
         else {
-            UserDefaults.standard.removeObject(forKey: Self.bookmarkKey)
+            AppEnvironment.defaults.removeObject(forKey: Self.bookmarkKey)
             return
         }
 

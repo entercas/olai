@@ -1,5 +1,8 @@
 import Observation
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 /// Which columns are showing.
 ///
@@ -11,18 +14,18 @@ import SwiftUI
 @Observable
 final class LayoutState {
     var showFolders = true {
-        didSet { UserDefaults.standard.set(showFolders, forKey: Self.foldersKey) }
+        didSet { AppEnvironment.defaults.set(showFolders, forKey: Self.foldersKey) }
     }
 
     var showPageList = true {
-        didSet { UserDefaults.standard.set(showPageList, forKey: Self.pagesKey) }
+        didSet { AppEnvironment.defaults.set(showPageList, forKey: Self.pagesKey) }
     }
 
     private static let foldersKey = "layout.showFolders"
     private static let pagesKey = "layout.showPageList"
 
     init() {
-        let defaults = UserDefaults.standard
+        let defaults = AppEnvironment.defaults
         // `object(forKey:)` rather than `bool(forKey:)`: a missing key reads as false,
         // which would start a fresh install with every column hidden.
         showFolders = defaults.object(forKey: Self.foldersKey) as? Bool ?? true
@@ -31,6 +34,23 @@ final class LayoutState {
 
     var columnVisibility: NavigationSplitViewVisibility {
         showFolders ? .all : .doubleColumn
+    }
+
+    /// Whether the change being made right now comes from a person -- a click, a drag, a
+    /// key -- rather than from the framework rearranging itself.
+    static var isUserInitiated: Bool {
+        #if os(macOS)
+        guard let event = NSApp.currentEvent else { return false }
+        let personal: Set<NSEvent.EventType> = [
+            .leftMouseDown, .leftMouseUp, .leftMouseDragged,
+            .rightMouseDown, .rightMouseUp,
+            .otherMouseDown, .otherMouseUp,
+            .keyDown, .keyUp,
+        ]
+        return personal.contains(event.type)
+        #else
+        return true
+        #endif
     }
 }
 

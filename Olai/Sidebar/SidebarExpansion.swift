@@ -9,6 +9,6 @@ enum SidebarExpansion {
     }
 
     static func setExpanded(_ expanded: Bool, for folderID: UUID) {
-        UserDefaults.standard.set(expanded, forKey: key(for: folderID))
+        AppEnvironment.defaults.set(expanded, forKey: key(for: folderID))
     }
 }

@@ -10,9 +10,11 @@ import Observation
 final class OpenTabs {
     private static let storageKey = "editor.openTabs"
     private static let activeKey = "editor.activeTab"
-    /// Enough to be useful, few enough that the bar stays readable. Opening past this
-    /// closes the least recently used tab rather than refusing.
-    private static let limit = 12
+    /// Enough to be useful, few enough that they all fit the row: the bar shares its
+    /// width between tabs rather than scrolling, and ten at their narrowest still fit
+    /// the detail column at the window's minimum size. Opening past this closes the
+    /// least recently used tab rather than refusing.
+    private static let limit = 10
 
     private(set) var ids: [UUID] = []
     private(set) var active: UUID?
@@ -80,13 +82,13 @@ final class OpenTabs {
     // MARK: Persistence
 
     private func save() {
-        let defaults = UserDefaults.standard
+        let defaults = AppEnvironment.defaults
         defaults.set(ids.map(\.uuidString), forKey: Self.storageKey)
         defaults.set(active?.uuidString, forKey: Self.activeKey)
     }
 
     private func restore() {
-        let defaults = UserDefaults.standard
+        let defaults = AppEnvironment.defaults
         ids = (defaults.stringArray(forKey: Self.storageKey) ?? []).compactMap(UUID.init(uuidString:))
         active = defaults.string(forKey: Self.activeKey).flatMap(UUID.init(uuidString:))
         // A stored active tab that is not in the list would leave the bar with nothing

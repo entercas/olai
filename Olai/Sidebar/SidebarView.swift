@@ -124,7 +124,11 @@ private struct FolderDisclosure: View {
         _folder = Bindable(folder)
         self.allFolders = allFolders
         self.actions = actions
-        _isExpanded = AppStorage(wrappedValue: false, SidebarExpansion.key(for: folder.id))
+        _isExpanded = AppStorage(
+            wrappedValue: false,
+            SidebarExpansion.key(for: folder.id),
+            store: AppEnvironment.defaults
+        )
     }
 
     private var children: [Folder] {
@@ -167,6 +171,16 @@ private struct FolderDisclosure: View {
                 .monospacedDigit()
             addMenu
         }
+        // One element per folder, named for the folder. Left to itself, inside a
+        // disclosure group SwiftUI folded the name, the count and the Add button into a
+        // single menu button called "Work, 2" -- VoiceOver announced a folder as a menu,
+        // and activating it opened Add instead of the folder. Add's two choices become
+        // actions on the folder instead.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(folder.name)
+        .accessibilityValue(pageCount.isEmpty ? "no pages" : "\(pageCount) pages")
+        .accessibilityAction(named: "New Page") { actions.addPage(folder) }
+        .accessibilityAction(named: "New Subfolder") { actions.addSubfolder(folder) }
         .contentShape(.rect)
         .background(
             RoundedRectangle(cornerRadius: 5)
@@ -280,12 +294,15 @@ struct PageRow: View {
     }
 
     /// The first line with words in it, so a list of similarly titled weekly pages is
-    /// still tellable apart.
+    /// still tellable apart -- skipping a first line that only repeats the title, which
+    /// a page that opens with its own heading always has.
     private var preview: String? {
+        let title = page.title.trimmingCharacters(in: .whitespaces)
         let line = page.plainText
             .components(separatedBy: .newlines)
-            .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-        guard let line, line.count > 0 else { return nil }
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .first { !$0.isEmpty && $0.caseInsensitiveCompare(title) != .orderedSame }
+        guard let line else { return nil }
         return String(line.prefix(80))
     }
 

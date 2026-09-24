@@ -21,16 +21,16 @@ final class MirrorExporter {
 
     /// page id → the relative path last written for it.
     private var ledger: [String: String] {
-        get { UserDefaults.standard.dictionary(forKey: Self.ledgerKey) as? [String: String] ?? [:] }
-        set { UserDefaults.standard.set(newValue, forKey: Self.ledgerKey) }
+        get { AppEnvironment.defaults.dictionary(forKey: Self.ledgerKey) as? [String: String] ?? [:] }
+        set { AppEnvironment.defaults.set(newValue, forKey: Self.ledgerKey) }
     }
 
     /// page id → the attachment files last written for it. Kept separately from the
     /// page ledger because one page has many, and because a page can lose an attachment
     /// without moving: the file has to go even though the page's own path is unchanged.
     private var attachmentLedger: [String: [String]] {
-        get { UserDefaults.standard.dictionary(forKey: Self.attachmentLedgerKey) as? [String: [String]] ?? [:] }
-        set { UserDefaults.standard.set(newValue, forKey: Self.attachmentLedgerKey) }
+        get { AppEnvironment.defaults.dictionary(forKey: Self.attachmentLedgerKey) as? [String: [String]] ?? [:] }
+        set { AppEnvironment.defaults.set(newValue, forKey: Self.attachmentLedgerKey) }
     }
 
     init(container: ModelContainer, settings: MirrorSettings) {

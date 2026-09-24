@@ -34,6 +34,7 @@ struct OlaiApp: App {
                 // no unreachable attachments left in it.
                 .task {
                     AttachmentCleanup.run(in: modelContainer.mainContext)
+                    DerivedTextRefresh.run(in: modelContainer.mainContext)
                     #if os(macOS)
                     mirrorExporter.exportNow()
                     #endif
@@ -41,7 +42,7 @@ struct OlaiApp: App {
         }
         .modelContainer(modelContainer)
         #if os(macOS)
-        .defaultSize(width: 1040, height: 700)
+        .defaultSize(width: 1200, height: 760)
         .commands {
             SidebarCommands()
             LayoutCommands(layout: layout)

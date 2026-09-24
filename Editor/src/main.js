@@ -127,14 +127,20 @@ const ScheduledTaskItem = TaskItem.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
+      // Neither survives Enter. Splitting a list item copies its attributes to the new
+      // one by default, so the line typed after a scheduled task came out showing the
+      // same due date -- and holding the same reminder id, which meant rescheduling or
+      // clearing either line acted on the other's reminder.
       reminderID: {
         default: null,
+        keepOnSplit: false,
         parseHTML: (el) => el.getAttribute('data-reminder-id'),
         renderHTML: (attrs) =>
           attrs.reminderID ? { 'data-reminder-id': attrs.reminderID } : {},
       },
       due: {
         default: null,
+        keepOnSplit: false,
         parseHTML: (el) => el.getAttribute('data-due'),
         renderHTML: (attrs) => (attrs.due ? { 'data-due': attrs.due } : {}),
       },

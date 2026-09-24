@@ -79,3 +79,23 @@ struct AttachmentReferenceTests {
         #expect(TipTapDocument.attachmentIDs(in: Data(#"{"type":"doc","content":[]}"#.utf8)) == [])
     }
 }
+
+struct PlainTextSeparationTests {
+    @Test func listItemsAreSeparatedNotRunTogether() throws {
+        let body = MarkdownParser.document(from: "- [ ] Milk\n- [x] Bread\n\nAfter the list")
+        let text = try #require(TipTapDocument.plainText(from: body))
+        #expect(text == "Milk\nBread\nAfter the list")
+    }
+
+    @Test func nestedListsStillEndUpOneItemPerLine() throws {
+        let body = MarkdownParser.document(from: "- Outer\n  - Inner\n- Second")
+        let text = try #require(TipTapDocument.plainText(from: body))
+        #expect(text.components(separatedBy: "\n") == ["Outer", "Inner", "Second"])
+    }
+
+    /// Marks split one run of text into several nodes; those must not gain newlines.
+    @Test func inlineMarksDoNotBreakAParagraph() throws {
+        let body = MarkdownParser.document(from: "Agreed the **scope** for the quarter.")
+        #expect(TipTapDocument.plainText(from: body) == "Agreed the scope for the quarter.")
+    }
+}

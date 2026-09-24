@@ -34,8 +34,8 @@ enum TaskScheduler {
     /// Per device on purpose: an EventKit identifier is not portable between them, so a
     /// reminder scheduled on another Mac was never reusable here anyway.
     private static var created: Set<String> {
-        get { Set(UserDefaults.standard.stringArray(forKey: createdKey) ?? []) }
-        set { UserDefaults.standard.set(Array(newValue), forKey: createdKey) }
+        get { Set(AppEnvironment.defaults.stringArray(forKey: createdKey) ?? []) }
+        set { AppEnvironment.defaults.set(Array(newValue), forKey: createdKey) }
     }
 
     static func requestAccess() async throws {

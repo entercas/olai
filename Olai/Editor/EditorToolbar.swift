@@ -15,93 +15,170 @@ struct EditorToolbar: View {
         static let symbol: CGFloat = 16
         static let width: CGFloat = 34
         static let wideWidth: CGFloat = 46
+        static let compactWidth: CGFloat = 30
+        static let compactWideWidth: CGFloat = 40
         static let height: CGFloat = 30
         static let corner: CGFloat = 7
-        static let spacing: CGFloat = 3
+        // Measured: the full row needed 854pt and the 860pt column left 836 after padding,
+        // so nothing ever showed inline. Tighter gaps win that back without shrinking a
+        // single button.
+        static let spacing: CGFloat = 2
     }
 
+    /// Always one row. When it does not fit, the controls reached for least move into a
+    /// More menu, in stages: first Mind Map, Dictate and Insert Image, then Indent and
+    /// Outdent, then Strikethrough with the spacing tightened. Lists, the checklist and
+    /// the reminder never move -- they are the ones reached for most.
+    ///
+    /// It used to be a single scrolling row, and at an ordinary window width with all
+    /// three columns showing, everything from Indent onwards sat past the right edge
+    /// with nothing to say it existed.
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Metrics.spacing) {
-                group {
-                    button("arrow.uturn.backward", "Undo", enabled: state.canUndo) { controller.run("undo") }
-                    button("arrow.uturn.forward", "Redo", enabled: state.canRedo) { controller.run("redo") }
-                }
-
-                divider
-
-                group {
-                    button("bold", "Bold", on: state.bold) { controller.run("bold") }
-                    button("italic", "Italic", on: state.italic) { controller.run("italic") }
-                    button("underline", "Underline", on: state.underline) { controller.run("underline") }
-                    button("strikethrough", "Strikethrough", on: state.strike) { controller.run("strike") }
-                }
-
-                divider
-
-                group {
-                    colorMenu(
-                        symbol: "character",
-                        title: "Text Colour",
-                        selected: state.textColor,
-                        swatches: Palette.text,
-                        clearTitle: "Default"
-                    ) { controller.run("setTextColor", payload: $0.map { ["color": $0] } ?? [:]) }
-
-                    colorMenu(
-                        symbol: "highlighter",
-                        title: "Highlight",
-                        selected: state.highlightColor,
-                        swatches: Palette.highlight,
-                        clearTitle: "No Highlight"
-                    ) { controller.run("setHighlightColor", payload: $0.map { ["color": $0] } ?? [:]) }
-                }
-
-                divider
-
-                styleMenu
-
-                divider
-
-                group {
-                    button("list.bullet", "Bullet List", on: state.bulletList, wide: true) { controller.run("bulletList") }
-                    button("list.number", "Numbered List", on: state.orderedList, wide: true) { controller.run("orderedList") }
-                    button("checklist", "Checklist", on: state.taskList, wide: true) { controller.run("taskList") }
-                    button("increase.indent", "Indent") { controller.run("indent") }
-                    button("decrease.indent", "Outdent") { controller.run("outdent") }
-                }
-
-                divider
-
-                group {
-                    button(
-                        "point.topleft.down.to.point.bottomright.curvepath",
-                        state.mindMap ? "Back to the Page" : "Mind Map",
-                        on: state.mindMap
-                    ) { controller.run("toggleMindMap") }
-
-                    button(
-                        dictation.state.isRunning ? "mic.fill" : "mic",
-                        dictationTitle,
-                        on: dictation.state.isRunning
-                    ) {
-                        Task { await dictation.toggle() }
-                    }
-
-                    button("photo", "Insert Image", action: onInsertImage)
-                    button(
-                        state.task.reminderID == nil ? "bell" : "bell.fill",
-                        reminderTitle,
-                        on: state.task.reminderID != nil,
-                        wide: true,
-                        action: scheduleTask
-                    )
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
+        ViewThatFits(in: .horizontal) {
+            row(.none)
+            row(.inserts)
+            row(.insertsAndIndent)
+            row(.everythingOptional)
+            ScrollView(.horizontal, showsIndicators: false) { row(.everythingOptional) }
+                .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
         }
-        .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+    }
+
+    /// How much has been moved into the More menu.
+    private enum Overflow: Int {
+        case none, inserts, insertsAndIndent, everythingOptional
+
+        var hidesInserts: Bool { rawValue >= 1 }
+        var hidesIndent: Bool { rawValue >= 2 }
+        var hidesStrike: Bool { rawValue >= 3 }
+        var isCompact: Bool { rawValue >= 3 }
+    }
+
+    private func row(_ overflow: Overflow) -> some View {
+        let compact = overflow.isCompact
+        let gap = compact ? 1.0 : Metrics.spacing
+
+        return HStack(spacing: gap) {
+            button("arrow.uturn.backward", "Undo", enabled: state.canUndo, compact: compact) { controller.run("undo") }
+            button("arrow.uturn.forward", "Redo", enabled: state.canRedo, compact: compact) { controller.run("redo") }
+
+            divider(compact)
+
+            button("bold", "Bold", on: state.bold, compact: compact) { controller.run("bold") }
+            button("italic", "Italic", on: state.italic, compact: compact) { controller.run("italic") }
+            button("underline", "Underline", on: state.underline, compact: compact) { controller.run("underline") }
+            if !overflow.hidesStrike {
+                button("strikethrough", "Strikethrough", on: state.strike, compact: compact) { controller.run("strike") }
+            }
+
+            divider(compact)
+
+            colorMenu(
+                symbol: "character",
+                title: "Text Colour",
+                selected: state.textColor,
+                swatches: Palette.text,
+                clearTitle: "Default"
+            ) { controller.run("setTextColor", payload: $0.map { ["color": $0] } ?? [:]) }
+
+            colorMenu(
+                symbol: "highlighter",
+                title: "Highlight",
+                selected: state.highlightColor,
+                swatches: Palette.highlight,
+                clearTitle: "No Highlight"
+            ) { controller.run("setHighlightColor", payload: $0.map { ["color": $0] } ?? [:]) }
+
+            divider(compact)
+
+            styleMenu
+
+            divider(compact)
+
+            button("list.bullet", "Bullet List", on: state.bulletList, wide: true, compact: compact) { controller.run("bulletList") }
+            button("list.number", "Numbered List", on: state.orderedList, wide: true, compact: compact) { controller.run("orderedList") }
+            button("checklist", "Checklist", on: state.taskList, wide: true, compact: compact) { controller.run("taskList") }
+            if !overflow.hidesIndent {
+                button("increase.indent", "Indent", compact: compact) { controller.run("indent") }
+                button("decrease.indent", "Outdent", compact: compact) { controller.run("outdent") }
+            }
+
+            divider(compact)
+
+            if !overflow.hidesInserts {
+                button(
+                    "point.topleft.down.to.point.bottomright.curvepath",
+                    state.mindMap ? "Back to the Page" : "Mind Map",
+                    on: state.mindMap,
+                    compact: compact
+                ) { controller.run("toggleMindMap") }
+
+                button(
+                    dictation.state.isRunning ? "mic.fill" : "mic",
+                    dictationTitle,
+                    on: dictation.state.isRunning,
+                    compact: compact
+                ) {
+                    Task { await dictation.toggle() }
+                }
+
+                button("photo", "Insert Image", compact: compact, action: onInsertImage)
+            }
+
+            button(
+                state.task.reminderID == nil ? "bell" : "bell.fill",
+                reminderTitle,
+                on: state.task.reminderID != nil,
+                wide: true,
+                compact: compact,
+                action: scheduleTask
+            )
+
+            if overflow != .none {
+                moreMenu(overflow)
+            }
+        }
+        .fixedSize()
+    }
+
+    /// What did not fit in the row, with the same actions and the same on/off state.
+    private func moreMenu(_ overflow: Overflow) -> some View {
+        Menu {
+            if overflow.hidesStrike {
+                Toggle("Strikethrough", isOn: Binding(get: { state.strike }, set: { _ in controller.run("strike") }))
+            }
+            if overflow.hidesIndent {
+                Button("Indent", systemImage: "increase.indent") { controller.run("indent") }
+                Button("Outdent", systemImage: "decrease.indent") { controller.run("outdent") }
+            }
+            if overflow.hidesInserts {
+                Divider()
+                Toggle(isOn: Binding(get: { state.mindMap }, set: { _ in controller.run("toggleMindMap") })) {
+                    Label("Mind Map", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+                }
+                Button(dictationTitle, systemImage: dictation.state.isRunning ? "mic.fill" : "mic") {
+                    Task { await dictation.toggle() }
+                }
+                Button("Insert Image…", systemImage: "photo", action: onInsertImage)
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .font(.system(size: Metrics.symbol, weight: .medium))
+                .frame(width: Metrics.width, height: Metrics.height)
+                .contentShape(.rect)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .frame(width: Metrics.width)
+        .pointingHandCursor()
+        .help("More")
+        .accessibilityLabel("More")
+    }
+
+    private func divider(_ compact: Bool) -> some View {
+        Divider().frame(height: 20).padding(.horizontal, compact ? 2 : 4)
     }
 
     /// Paragraph style as one control. Four separate buttons said the same thing four
@@ -137,6 +214,7 @@ struct EditorToolbar: View {
         .pointingHandCursor()
         .help("Paragraph Style")
         .accessibilityLabel("Paragraph Style")
+        .accessibilityValue(currentStyle.name)
     }
 
     private var currentStyle: BlockStyle {
@@ -178,15 +256,6 @@ struct EditorToolbar: View {
         }
     }
 
-    @ViewBuilder
-    private func group<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        HStack(spacing: Metrics.spacing) { content() }
-    }
-
-    private var divider: some View {
-        Divider().frame(height: 20).padding(.horizontal, 6)
-    }
-
     // MARK: Controls
 
     /// - Parameter wide: for the controls reached for constantly -- lists, checklist,
@@ -194,18 +263,16 @@ struct EditorToolbar: View {
     private func button(
         _ symbol: String,
         _ title: String,
-        on: Bool = false,
+        on: Bool? = nil,
         enabled: Bool = true,
         wide: Bool = false,
+        compact: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
-        control(
-            title: title,
-            on: on,
-            enabled: enabled,
-            width: wide ? Metrics.wideWidth : Metrics.width,
-            action: action
-        ) {
+        let width = wide
+            ? (compact ? Metrics.compactWideWidth : Metrics.wideWidth)
+            : (compact ? Metrics.compactWidth : Metrics.width)
+        return control(title: title, on: on, enabled: enabled, width: width, action: action) {
             Image(systemName: symbol)
                 .font(.system(size: wide ? Metrics.symbol + 2 : Metrics.symbol, weight: .medium))
         }
@@ -213,7 +280,7 @@ struct EditorToolbar: View {
 
     private func control<Content: View>(
         title: String,
-        on: Bool,
+        on: Bool?,
         enabled: Bool,
         width: CGFloat? = nil,
         action: @escaping () -> Void,
@@ -225,15 +292,18 @@ struct EditorToolbar: View {
                 .contentShape(.rect)
                 .background(
                     RoundedRectangle(cornerRadius: Metrics.corner)
-                        .fill(.tint.opacity(on ? 0.22 : 0))
+                        .fill(.tint.opacity(on == true ? 0.22 : 0))
                 )
-                .foregroundStyle(on ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
+                .foregroundStyle(on == true ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
         }
         .buttonStyle(ToolbarButtonStyle())
         .disabled(!enabled)
         .opacity(enabled ? 1 : 0.35)
         .help(title)
         .accessibilityLabel(title)
+        // Whether a formatting toggle is in force, for VoiceOver -- which could not tell
+        // before whether Bold was on -- and for the UI smoke test, which reads it.
+        .accessibilityValue(on.map { $0 ? "on" : "off" } ?? "")
     }
 
     private func colorMenu(
@@ -279,6 +349,7 @@ struct EditorToolbar: View {
         .pointingHandCursor()
         .help(title)
         .accessibilityLabel(title)
+        .accessibilityValue(swatches.first { $0.hex.caseInsensitiveCompare(selected ?? "") == .orderedSame }?.name ?? "none")
     }
 }
 

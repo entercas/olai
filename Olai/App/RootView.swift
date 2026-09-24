@@ -31,9 +31,15 @@ struct RootView: View {
     var body: some View {
         NavigationSplitView(columnVisibility: Binding(
             get: { layout.columnVisibility },
-            // Two-way on purpose: the split view's own sidebar button writes back here,
-            // so the rail learns the folders have gone however they went.
-            set: { layout.showFolders = ($0 == .all) }
+            set: { visibility in
+                // Two-way, so the split view's own sidebar button and a dragged divider
+                // still register -- but only when a person did it. The split view also
+                // writes here by itself, restoring state after a force-quit or folding
+                // the sidebar away to fit a narrow window, and since the preference is
+                // saved, one such write left the folders hidden on every launch after.
+                guard LayoutState.isUserInitiated else { return }
+                layout.showFolders = (visibility == .all)
+            }
         )) {
             SidebarView(scope: $scope, actions: actions)
                 .navigationSplitViewColumnWidth(min: 170, ideal: 210, max: 300)
@@ -218,13 +224,15 @@ struct RootView: View {
 
     // MARK: Creating
 
-    /// Where new items land: the folder the notebook column has selected, else the
-    /// folder holding the page in front, else the top level.
+    /// Where new items land: the folder the notebook column has selected, or the top
+    /// level when it is showing All Pages.
+    ///
+    /// It used to fall back to the folder of whichever page was open, so a page made
+    /// from All Pages landed in some folder the person was not looking at, and the list
+    /// then switched to that folder -- everything they had been looking at vanished.
     private var insertionFolder: Folder? {
-        if case let .folder(id) = scope {
-            return allFolders.first { $0.id == id }
-        }
-        return tabs.active.flatMap { active in allPages.first { $0.id == active }?.folder }
+        guard case let .folder(id) = scope else { return nil }
+        return allFolders.first { $0.id == id }
     }
 
     private func newPage() {
@@ -413,5 +421,8 @@ struct NewPageButton: View {
             if let folder { actions.addPage(folder) } else { actions.newPage() }
         }
         .help(folder.map { "New page in “\($0.name)” — hold for templates" } ?? "New page — hold for templates")
+        // A menu with a primary action does not pass its label's text to accessibility,
+        // so VoiceOver announced it only by its tooltip.
+        .accessibilityLabel("New Page")
     }
 }

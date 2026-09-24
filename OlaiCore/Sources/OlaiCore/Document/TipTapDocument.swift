@@ -76,9 +76,18 @@ public enum TipTapDocument {
 
     private static let attachmentPrefix = "attachment://"
 
+    /// Inline content runs together; blocks do not. Everything below the top level used
+    /// to be joined with nothing between, so a checklist of Milk and Bread read as
+    /// "MilkBread" -- in the page list's preview, and to search, which could no longer
+    /// find "milk bread".
     private static func text(inNode node: [String: Any]) -> String {
         if let text = node["text"] as? String { return text }
+        if node["type"] as? String == "hardBreak" { return "\n" }
         let children = node["content"] as? [[String: Any]] ?? []
-        return children.map(text(inNode:)).joined()
+        let holdsBlocks = children.contains { child in
+            let type = child["type"] as? String ?? ""
+            return type != "text" && type != "hardBreak"
+        }
+        return children.map(text(inNode:)).joined(separator: holdsBlocks ? "\n" : "")
     }
 }

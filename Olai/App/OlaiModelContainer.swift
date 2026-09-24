@@ -14,6 +14,20 @@ enum OlaiModelContainer {
     static func make() -> ModelContainer {
         let schema = OlaiSchema.schema
 
+        // A UI test gets a store that lives and dies with the process, filled with known
+        // notes, and never touches the library on disk or in iCloud.
+        if AppEnvironment.isUITesting {
+            do {
+                let memory = ModelConfiguration("OlaiUITesting", schema: schema, isStoredInMemoryOnly: true)
+                let container = try ModelContainer(for: schema, configurations: memory)
+                // App init runs on the main thread; the compiler cannot see that from here.
+                MainActor.assumeIsolated { UITestFixtures.seed(container.mainContext) }
+                return container
+            } catch {
+                fatalError("Olai: could not open the UI-test store: \(error)")
+            }
+        }
+
         // Only ask for CloudKit when this build is actually entitled to the container.
         // Asking without the entitlement does not fail in a way that can be caught:
         // CloudKit traps on its own queue during setup, taking the app down before any
