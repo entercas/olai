@@ -78,6 +78,12 @@ view_menu() {
 
 # ---------------------------------------------------------------------------------------
 
+if ! "$driver" trusted >/dev/null 2>&1; then
+    echo "This process is not allowed to control the computer (Accessibility), so no check"
+    echo "could mean anything. Grant it in System Settings > Privacy & Security > Accessibility."
+    exit 2
+fi
+
 echo "Olai UI smoke test"
 echo "  app:    $app ($(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist" 2>/dev/null))"
 echo "  macOS:  $(sw_vers -productVersion)"

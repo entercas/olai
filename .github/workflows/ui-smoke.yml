@@ -1,0 +1,55 @@
+name: UI smoke test
+
+# Runs the same click-through as scripts/ui-smoke/smoke.sh on a macOS release other
+# than the one it was written on. A tab bar that worked on macOS 26 was dead on 15;
+# the only way to know a fix holds there is to run it there.
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  smoke:
+    name: macOS ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+
+      # Ad-hoc signed with the entitlements that carry no iCloud container: the runner
+      # has no Developer ID certificate, and an iCloud entitlement without a
+      # provisioning profile stops the app from launching at all.
+      - name: Build
+        run: |
+          xcodebuild \
+            -project Olai.xcodeproj \
+            -scheme Olai \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            -derivedDataPath build/ci \
+            CODE_SIGN_IDENTITY=- \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM= \
+            PROVISIONING_PROFILE_SPECIFIER= \
+            CODE_SIGN_ENTITLEMENTS=Olai/Olai-macOS-local.entitlements \
+            build | tail -5
+
+      - name: Smoke test
+        run: scripts/ui-smoke/smoke.sh build/ci/Build/Products/Debug/Olai.app "$RUNNER_TEMP/smoke"
+
+      - name: Keep the screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-${{ matrix.os }}
+          path: ${{ runner.temp }}/smoke
+          if-no-files-found: warn

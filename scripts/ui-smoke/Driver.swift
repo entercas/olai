@@ -269,6 +269,11 @@ case "maxx":
     // Right edge of the window, for checking a control is actually inside it.
     guard let window = nodes().first(where: { $0.role == "AXWindow" }), let f = window.frame else { exit(3) }
     print(Int(f.maxX))
+case "trusted":
+    // Whether this process may read and drive other apps. Without it every check fails
+    // for a reason that has nothing to do with Olai.
+    print(AXIsProcessTrusted() ? "yes" : "no")
+    exit(AXIsProcessTrusted() ? 0 : 6)
 case "activate":
     olai().0.activate()
     usleep(400_000)
