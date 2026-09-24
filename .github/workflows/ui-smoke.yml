@@ -1,12 +1,21 @@
 name: UI smoke test
 
-# Runs the same click-through as scripts/ui-smoke/smoke.sh on a macOS release other
-# than the one it was written on. A tab bar that worked on macOS 26 was dead on 15;
-# the only way to know a fix holds there is to run it there.
+# Runs scripts/ui-smoke/smoke.sh on a macOS release other than the one it was written
+# on, against the exact disk image that will ship. A tab bar that worked on macOS 26
+# was dead on 15, and the only way to know a fix holds there is to run the shipped
+# binary there -- not a fresh compile on that machine's own toolchain.
+#
+# Point it at a release (a draft is fine, and is the intended use: test, then publish):
+#   gh workflow run ui-smoke.yml -f tag=v1.3.1
 on:
   workflow_dispatch:
-  push:
-    tags: ["v*"]
+    inputs:
+      tag:
+        description: Release whose Olai.dmg to test
+        required: true
+
+permissions:
+  contents: read
 
 jobs:
   smoke:
@@ -20,31 +29,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Toolchain
-        run: |
-          sw_vers
-          xcodebuild -version
+      - name: Machine
+        run: sw_vers
 
-      # Ad-hoc signed with the entitlements that carry no iCloud container: the runner
-      # has no Developer ID certificate, and an iCloud entitlement without a
-      # provisioning profile stops the app from launching at all.
-      - name: Build
+      - name: Fetch the disk image being shipped
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          xcodebuild \
-            -project Olai.xcodeproj \
-            -scheme Olai \
-            -configuration Debug \
-            -destination 'platform=macOS' \
-            -derivedDataPath build/ci \
-            CODE_SIGN_IDENTITY=- \
-            CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM= \
-            PROVISIONING_PROFILE_SPECIFIER= \
-            CODE_SIGN_ENTITLEMENTS=Olai/Olai-macOS-local.entitlements \
-            build | tail -5
+          set -euo pipefail
+          gh release download "${{ inputs.tag }}" --pattern Olai.dmg --dir "$RUNNER_TEMP"
+          mkdir -p "$RUNNER_TEMP/mnt" "$RUNNER_TEMP/app"
+          hdiutil attach "$RUNNER_TEMP/Olai.dmg" -nobrowse -readonly -mountpoint "$RUNNER_TEMP/mnt"
+          cp -R "$RUNNER_TEMP/mnt/Olai.app" "$RUNNER_TEMP/app/"
+          hdiutil detach "$RUNNER_TEMP/mnt"
+          # What Gatekeeper makes of it on a machine that has never seen it.
+          spctl -a -vvv -t install "$RUNNER_TEMP/app/Olai.app" || true
 
       - name: Smoke test
-        run: scripts/ui-smoke/smoke.sh build/ci/Build/Products/Debug/Olai.app "$RUNNER_TEMP/smoke"
+        run: scripts/ui-smoke/smoke.sh "$RUNNER_TEMP/app/Olai.app" "$RUNNER_TEMP/smoke"
 
       - name: Keep the screenshots
         if: always()
