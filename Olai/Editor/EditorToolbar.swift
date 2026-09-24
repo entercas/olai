@@ -39,7 +39,8 @@ struct EditorToolbar: View {
             row(.inserts)
             row(.insertsAndIndent)
             row(.everythingOptional)
-            ScrollView(.horizontal, showsIndicators: false) { row(.everythingOptional) }
+            row(.minimal)
+            ScrollView(.horizontal, showsIndicators: false) { row(.minimal) }
                 .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
         }
         .padding(.horizontal, 12)
@@ -48,12 +49,17 @@ struct EditorToolbar: View {
 
     /// How much has been moved into the More menu.
     private enum Overflow: Int {
-        case none, inserts, insertsAndIndent, everythingOptional
+        case none, inserts, insertsAndIndent, everythingOptional, minimal
 
         var hidesInserts: Bool { rawValue >= 1 }
         var hidesIndent: Bool { rawValue >= 2 }
         var hidesStrike: Bool { rawValue >= 3 }
         var isCompact: Bool { rawValue >= 3 }
+        /// The last stage before scrolling, for a window at its minimum width with all
+        /// three columns showing: Undo and Redo (which ⌘Z and ⇧⌘Z cover) and the colour
+        /// menus go too. Without it the row scrolled and the More button itself was
+        /// cut off at the edge.
+        var hidesHistoryAndColour: Bool { rawValue >= 4 }
     }
 
     private func row(_ overflow: Overflow) -> some View {
@@ -61,10 +67,12 @@ struct EditorToolbar: View {
         let gap = compact ? 1.0 : Metrics.spacing
 
         return HStack(spacing: gap) {
-            button("arrow.uturn.backward", "Undo", enabled: state.canUndo, compact: compact) { controller.run("undo") }
-            button("arrow.uturn.forward", "Redo", enabled: state.canRedo, compact: compact) { controller.run("redo") }
+            if !overflow.hidesHistoryAndColour {
+                button("arrow.uturn.backward", "Undo", enabled: state.canUndo, compact: compact) { controller.run("undo") }
+                button("arrow.uturn.forward", "Redo", enabled: state.canRedo, compact: compact) { controller.run("redo") }
 
-            divider(compact)
+                divider(compact)
+            }
 
             button("bold", "Bold", on: state.bold, compact: compact) { controller.run("bold") }
             button("italic", "Italic", on: state.italic, compact: compact) { controller.run("italic") }
@@ -75,23 +83,25 @@ struct EditorToolbar: View {
 
             divider(compact)
 
-            colorMenu(
-                symbol: "character",
-                title: "Text Colour",
-                selected: state.textColor,
-                swatches: Palette.text,
-                clearTitle: "Default"
-            ) { controller.run("setTextColor", payload: $0.map { ["color": $0] } ?? [:]) }
+            if !overflow.hidesHistoryAndColour {
+                colorMenu(
+                    symbol: "character",
+                    title: "Text Colour",
+                    selected: state.textColor,
+                    swatches: Palette.text,
+                    clearTitle: "Default"
+                ) { controller.run("setTextColor", payload: $0.map { ["color": $0] } ?? [:]) }
 
-            colorMenu(
-                symbol: "highlighter",
-                title: "Highlight",
-                selected: state.highlightColor,
-                swatches: Palette.highlight,
-                clearTitle: "No Highlight"
-            ) { controller.run("setHighlightColor", payload: $0.map { ["color": $0] } ?? [:]) }
+                colorMenu(
+                    symbol: "highlighter",
+                    title: "Highlight",
+                    selected: state.highlightColor,
+                    swatches: Palette.highlight,
+                    clearTitle: "No Highlight"
+                ) { controller.run("setHighlightColor", payload: $0.map { ["color": $0] } ?? [:]) }
 
-            divider(compact)
+                divider(compact)
+            }
 
             styleMenu
 
@@ -146,6 +156,20 @@ struct EditorToolbar: View {
     /// What did not fit in the row, with the same actions and the same on/off state.
     private func moreMenu(_ overflow: Overflow) -> some View {
         Menu {
+            if overflow.hidesHistoryAndColour {
+                Button("Undo", systemImage: "arrow.uturn.backward") { controller.run("undo") }
+                    .disabled(!state.canUndo)
+                Button("Redo", systemImage: "arrow.uturn.forward") { controller.run("redo") }
+                    .disabled(!state.canRedo)
+                Divider()
+                colourSubmenu("Text Colour", swatches: Palette.text, clearTitle: "Default") {
+                    controller.run("setTextColor", payload: $0.map { ["color": $0] } ?? [:])
+                }
+                colourSubmenu("Highlight", swatches: Palette.highlight, clearTitle: "No Highlight") {
+                    controller.run("setHighlightColor", payload: $0.map { ["color": $0] } ?? [:])
+                }
+                Divider()
+            }
             if overflow.hidesStrike {
                 Toggle("Strikethrough", isOn: Binding(get: { state.strike }, set: { _ in controller.run("strike") }))
             }
@@ -175,6 +199,21 @@ struct EditorToolbar: View {
         .pointingHandCursor()
         .help("More")
         .accessibilityLabel("More")
+    }
+
+    private func colourSubmenu(
+        _ title: String,
+        swatches: [Palette.Swatch],
+        clearTitle: String,
+        apply: @escaping (String?) -> Void
+    ) -> some View {
+        Menu(title) {
+            Button(clearTitle) { apply(nil) }
+            Divider()
+            ForEach(swatches) { swatch in
+                Button(swatch.name) { apply(swatch.hex) }
+            }
+        }
     }
 
     private func divider(_ compact: Bool) -> some View {

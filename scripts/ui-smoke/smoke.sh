@@ -174,6 +174,9 @@ check "tight: the bell still in the row"       "$(inside 'AXButton:task')" yes
 ax press "AXMenuButton:More" 0 >/dev/null; settle 0.6
 check "More offers what left the row"           "$(atLeast "$(count 'AXMenuItem:Mind Map')" 1)" yes
 ax key 53 >/dev/null; settle 0.5                  # Escape
+ax resize 900 700 >/dev/null; settle 1.5          # the window's minimum, all columns showing
+check "at the smallest window, More is visible" "$(inside 'AXMenuButton:More')" yes
+check "and so is the bell"                      "$(inside 'AXButton:task')" yes
 ax resize 1200 760 >/dev/null; settle 1.5
 
 echo "Toolbar"
