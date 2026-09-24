@@ -162,13 +162,15 @@ inside() {
     [ -n "$right" ] && [ "$right" -le "$edge" ] && echo yes || echo no
 }
 ax click "AXStaticText:=Kickoff" 0 >/dev/null; settle
-ax resize 1600 900 >/dev/null; settle 1.5
-check "wide window: every control in one row"   "$(count 'AXMenuButton:More')" 0
-check "wide window: the bell is inside the window" "$(inside 'AXButton:task')" yes
+ax resize 1200 760 >/dev/null; settle
+view_menu "Folders"; view_menu "Page List"; settle 1.5
+check "room to spare: every control in one row" "$(count 'AXMenuButton:More')" 0
+check "room to spare: the bell is in the window" "$(inside 'AXButton:task')" yes
+view_menu "Folders"; view_menu "Page List"; settle 1
 ax resize 1000 760 >/dev/null; settle 1.5
-check "narrow window: extras move into More"    "$(count 'AXMenuButton:More')" 1
-check "narrow window: checklist still in the row" "$(inside 'AXButton:Checklist')" yes
-check "narrow window: the bell still in the row" "$(inside 'AXButton:task')" yes
+check "tight: extras move into More"            "$(count 'AXMenuButton:More')" 1
+check "tight: checklist still in the row"      "$(inside 'AXButton:Checklist')" yes
+check "tight: the bell still in the row"       "$(inside 'AXButton:task')" yes
 ax press "AXMenuButton:More" 0 >/dev/null; settle 0.6
 check "More offers what left the row"           "$(atLeast "$(count 'AXMenuItem:Mind Map')" 1)" yes
 ax key 53 >/dev/null; settle 0.5                  # Escape
@@ -223,8 +225,8 @@ ax type "Smoke" >/dev/null; ax key 36 >/dev/null; settle
 check "New Folder asks for a name and makes it" "$(atLeast "$(count '=Smoke')" 1)" yes
 
 echo "Formatting that needed room"
-ax resize 1600 900 >/dev/null; settle 1.5
 ax click "AXStaticText:=Kickoff" 0 >/dev/null; settle
+view_menu "Folders"; view_menu "Page List"; settle 1.5
 ax click "editor/AXStaticText:for the quarter" 0 >/dev/null; settle 0.5
 ax key 0 cmd >/dev/null; settle 0.5
 ax press "AXMenuButton:Highlight" 0 >/dev/null; settle 0.6
@@ -235,7 +237,7 @@ ax press "AXButton:Mind Map" 0 >/dev/null; settle 1.5
 check "Mind Map switches the page to a map"     "$(ax value 'AXButton:Back to the Page' 0)" "on"
 ax press "AXButton:Back to the Page" 0 >/dev/null; settle
 check "and back to the page"                    "$(ax value 'AXButton:Mind Map' 0)" "off"
-ax resize 1200 760 >/dev/null; settle 1.5
+view_menu "Folders"; view_menu "Page List"; settle 1.5
 
 echo "Templates"
 ax click "AXStaticText:=All Pages" 0 >/dev/null; settle

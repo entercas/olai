@@ -113,7 +113,12 @@ func matching(_ query: String) -> [Node] {
 
     return nodes().filter { node in
         guard !editorOnly || node.inEditor else { return false }
-        guard role == nil || node.role == role else { return false }
+        // A SwiftUI Menu is an AXMenuButton on Tahoe and an AXPopUpButton on Sequoia.
+        if let role, role == "AXMenuButton" || role == "AXPopUpButton" {
+            guard node.role == "AXMenuButton" || node.role == "AXPopUpButton" else { return false }
+        } else {
+            guard role == nil || node.role == role else { return false }
+        }
         guard !text.isEmpty else { return true }
         if exact {
             return node.label.split(separator: "|").contains {
