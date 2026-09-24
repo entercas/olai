@@ -15,7 +15,7 @@ on:
         required: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   smoke:
@@ -24,7 +24,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15]
+        # Sequoia and Tahoe: the two releases people are likely to be on.
+        os: [macos-15, macos-26]
 
     steps:
       - uses: actions/checkout@v4
