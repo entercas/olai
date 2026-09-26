@@ -19,8 +19,8 @@ settings:
     SWIFT_STRICT_CONCURRENCY: complete
     # Keep in step with the git tag: the first two releases both shipped reporting
     # 0.1.0, so Get Info disagreed with the release they came from.
-    MARKETING_VERSION: "1.3.1"
-    CURRENT_PROJECT_VERSION: "6"
+    MARKETING_VERSION: "1.3.2"
+    CURRENT_PROJECT_VERSION: "7"
   configs:
     Release:
       # Notarisation requires the hardened runtime. It costs nothing in a debug build
