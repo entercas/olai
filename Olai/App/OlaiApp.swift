@@ -1,5 +1,8 @@
 import SwiftData
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 @main
 struct OlaiApp: App {
@@ -13,6 +16,11 @@ struct OlaiApp: App {
 
     init() {
         #if os(macOS)
+        switch AppEnvironment.forcedAppearance {
+        case "light": NSApplication.shared.appearance = NSAppearance(named: .aqua)
+        case "dark": NSApplication.shared.appearance = NSAppearance(named: .darkAqua)
+        default: break
+        }
         let settings = MirrorSettings()
         _mirrorSettings = State(initialValue: settings)
         _mirrorExporter = State(

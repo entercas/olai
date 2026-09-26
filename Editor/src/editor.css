@@ -1,4 +1,8 @@
 :root {
+  /* Tells WebKit which way round its own controls go -- scroll bars above all. Without
+     it they were drawn for light mode whatever the app was in, a white stripe down a
+     dark page. Switched with the rest of the theme in applyTheme. */
+  color-scheme: light;
   --text: #1c1c1e;
   --muted: #8a8a8e;
   --rule: rgba(0, 0, 0, 0.12);
@@ -27,10 +31,13 @@ html, body {
   -webkit-text-size-adjust: 100%;
 }
 
-/* The web view never scrolls its host: the document scrolls inside this element. */
-#editor { height: 100vh; overflow-y: auto; }
+/* The web view never scrolls its host: the document scrolls inside this element, which
+   spans the whole pane so its scroll bar sits at the window's edge. */
+#editor { height: 100vh; overflow-y: auto; padding: 0 24px; }
 
 .ProseMirror {
+  /* The full width of the pane, 24pt in from each side -- 4pt left of the title, which
+     sits at 28, so the text's optical edge lines up with it. */
   min-height: 100%;
   padding: 14px 0 60vh 0;
   outline: none;

@@ -95,6 +95,10 @@ for _ in $(seq 1 20); do pgrep -x Olai >/dev/null || break; sleep 0.5; done
 pkill -x Olai 2>/dev/null
 "$app/Contents/MacOS/Olai" -OlaiUITesting >"$out/app.log" 2>&1 &
 settle 6
+for _ in 1 2 3 4 5; do
+    [ "$(count 'Notebooks')" -ge 1 ] 2>/dev/null && break
+    open -a "$app"; settle 2
+done
 ax activate >/dev/null
 settle
 
@@ -164,6 +168,8 @@ inside() {
 ax click "AXStaticText:=Kickoff" 0 >/dev/null; settle
 ax resize 1200 760 >/dev/null; settle
 view_menu "Folders"; view_menu "Page List"; settle 1.5
+page_right=$(ax frame "AXWebArea:" 0 | awk '{print int($1 + $3)}')
+check "the page fills the pane"                 "$(atLeast "$((page_right + 30))" "$(ax maxx)")" yes
 check "room to spare: every control in one row" "$(count 'AXMenuButton:More')" 0
 check "room to spare: the bell is in the window" "$(inside 'AXButton:task')" yes
 view_menu "Folders"; view_menu "Page List"; settle 1

@@ -479,6 +479,8 @@ window.olai = {
 
   applyTheme({ dark }) {
     document.body.classList.toggle('dark', Boolean(dark))
+    // WebKit's own controls -- scroll bars, the caret -- follow color-scheme, not a class.
+    document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
   },
 
   command({ name, payload }) {

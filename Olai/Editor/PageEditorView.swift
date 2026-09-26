@@ -28,6 +28,53 @@ struct PageEditorView: View {
     #endif
 
     var body: some View {
+        VStack(spacing: 0) {
+            // The page uses the whole pane. It used to keep to an 860pt column centred in
+            // the pane, so hiding the side columns to make room left wide empty margins
+            // either side of the same narrow page -- and the web view's scroll bar stood
+            // at the column's edge, in the middle of the window.
+            header
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            EditorWebView(controller: controller, container: context.container)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        #if os(iOS)
+        .navigationTitle(LocationTitle.of(page.folder))
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+        .onAppear(perform: load)
+        .onDisappear {
+            controller.flush()
+            dictation.stop()
+        }
+        .onChange(of: colorScheme) { _, new in controller.applyTheme(dark: new == .dark) }
+        .task(id: title) { await saveTitle() }
+        .sheet(isPresented: $isSchedulePresented) {
+            ScheduleTaskSheet(
+                taskText: controller.state.task.text,
+                existingID: controller.state.task.reminderID,
+                onScheduled: { id, due in controller.setTaskReminder(id: id, due: due) },
+                onCleared: { controller.setTaskReminder(id: nil, due: nil) }
+            )
+        }
+        .modifier(ImageImporter(isPresented: $isImporterPresented, insert: insertImage))
+        #if os(iOS)
+        .photosPicker(isPresented: $isImporterPresented, selection: $photoItem, matching: .images)
+        .onChange(of: photoItem) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self) {
+                    insertImage(data: data, mime: "image/png", name: "photo")
+                }
+                photoItem = nil
+            }
+        }
+        #endif
+    }
+
+    /// Title, toolbar and the rule under them, kept to the reading column.
+    private var header: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 3) {
                 TextField("Title", text: $title)
@@ -62,44 +109,7 @@ struct PageEditorView: View {
             }
 
             Divider()
-
-            EditorWebView(controller: controller, container: context.container)
-                .padding(.horizontal, EditorMetrics.gutter - 4)
         }
-        .frame(maxWidth: EditorMetrics.columnWidth, alignment: .leading)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        #if os(iOS)
-        .navigationTitle(LocationTitle.of(page.folder))
-        .navigationBarTitleDisplayMode(.inline)
-        #endif
-        .onAppear(perform: load)
-        .onDisappear {
-            controller.flush()
-            dictation.stop()
-        }
-        .onChange(of: colorScheme) { _, new in controller.applyTheme(dark: new == .dark) }
-        .task(id: title) { await saveTitle() }
-        .sheet(isPresented: $isSchedulePresented) {
-            ScheduleTaskSheet(
-                taskText: controller.state.task.text,
-                existingID: controller.state.task.reminderID,
-                onScheduled: { id, due in controller.setTaskReminder(id: id, due: due) },
-                onCleared: { controller.setTaskReminder(id: nil, due: nil) }
-            )
-        }
-        .modifier(ImageImporter(isPresented: $isImporterPresented, insert: insertImage))
-        #if os(iOS)
-        .photosPicker(isPresented: $isImporterPresented, selection: $photoItem, matching: .images)
-        .onChange(of: photoItem) { _, item in
-            guard let item else { return }
-            Task {
-                if let data = try? await item.loadTransferable(type: Data.self) {
-                    insertImage(data: data, mime: "image/png", name: "photo")
-                }
-                photoItem = nil
-            }
-        }
-        #endif
     }
 
     // MARK: Wiring
@@ -202,7 +212,6 @@ private struct ImageImporter: ViewModifier {
 
 enum EditorMetrics {
     static let gutter: CGFloat = 28
-    static let columnWidth: CGFloat = 860
 }
 
 /// Where an item sits in the tree, for the detail pane's title.
