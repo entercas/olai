@@ -47,12 +47,16 @@ final class EditorController: NSObject {
     private(set) var state = EditorState()
     private(set) var isReady = false
 
-    /// Set by the host view before the editor loads.
-    var onDocumentChanged: ((Data, String) -> Void)?
+    /// Set by the host view before the editor loads. The id is the page the document
+    /// belongs to: one editor serves every tab, and a save can arrive after the tab that
+    /// made it has been switched away from.
+    var onDocumentChanged: ((UUID, Data, String) -> Void)?
     var onImagePasted: ((Data, String, String) -> UUID?)?
 
+    /// The page whose document the editor holds.
+    @ObservationIgnored private(set) var pageID: UUID?
     @ObservationIgnored private weak var webView: WKWebView?
-    @ObservationIgnored private var pendingDocument: (json: Data, readOnly: Bool)?
+    @ObservationIgnored private var pendingDocument: (json: Data, pageID: UUID, readOnly: Bool)?
     @ObservationIgnored private var pendingDark: Bool?
 
     func attach(_ webView: WKWebView) {
@@ -61,14 +65,19 @@ final class EditorController: NSObject {
 
     // MARK: Sending
 
-    func setDocument(json: Data?, readOnly: Bool = false) {
+    /// Loads a page into the editor. Switching tabs is this call and nothing else: the
+    /// web view stays, so the bundle is not parsed again for every tab.
+    func setDocument(json: Data?, pageID: UUID, readOnly: Bool = false) {
         let document = json ?? TipTapDocument.emptyDocument
+        self.pageID = pageID
         guard isReady else {
-            pendingDocument = (document, readOnly)
+            pendingDocument = (document, pageID, readOnly)
             return
         }
         guard let encoded = jsString(String(decoding: document, as: UTF8.self)) else { return }
-        evaluate("window.olai.setDocument({json: \(encoded), readOnly: \(readOnly)})")
+        evaluate(
+            "window.olai.setDocument({json: \(encoded), readOnly: \(readOnly), pageID: '\(pageID.uuidString)'})"
+        )
     }
 
     func applyTheme(dark: Bool) {
@@ -198,7 +207,11 @@ extension EditorController: WKScriptMessageHandler {
         case "ready":
             isReady = true
             if let pendingDocument {
-                setDocument(json: pendingDocument.json, readOnly: pendingDocument.readOnly)
+                setDocument(
+                    json: pendingDocument.json,
+                    pageID: pendingDocument.pageID,
+                    readOnly: pendingDocument.readOnly
+                )
                 self.pendingDocument = nil
             }
             if let pendingDark {
@@ -208,10 +221,11 @@ extension EditorController: WKScriptMessageHandler {
 
         case "documentChanged":
             guard
+                let pageID = (payload["pageID"] as? String).flatMap(UUID.init(uuidString:)),
                 let json = payload["json"],
                 let data = try? JSONSerialization.data(withJSONObject: json, options: [.sortedKeys])
             else { return }
-            onDocumentChanged?(data, payload["plainText"] as? String ?? "")
+            onDocumentChanged?(pageID, data, payload["plainText"] as? String ?? "")
 
         case "stateChanged":
             guard
@@ -238,6 +252,9 @@ extension EditorController: WKScriptMessageHandler {
                 let id = onImagePasted?(image.data, image.mime, "screenshot")
             else { return }
             insertImage(id: id)
+
+        case "loaded":
+            PerfLog.mark("loaded js=\(payload["ms"] ?? "")")
 
         case "slashCommand":
             break

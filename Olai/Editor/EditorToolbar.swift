@@ -30,33 +30,71 @@ struct EditorToolbar: View {
     /// Outdent, then Strikethrough with the spacing tightened. Lists, the checklist and
     /// the reminder never move -- they are the ones reached for most.
     ///
-    /// It used to be a single scrolling row, and at an ordinary window width with all
-    /// three columns showing, everything from Indent onwards sat past the right edge
+    /// It used to be a single scrolling row, and at an ordinary window width with the
+    /// old three columns showing, everything from Indent onwards sat past the right edge
     /// with nothing to say it existed.
+    ///
+    /// The stage is chosen from the width available, worked out from the controls' fixed
+    /// sizes. It used to be a `ViewThatFits` over all six versions of the row, which lays
+    /// every one of them out -- dozens of AppKit-backed menus -- each time anything in the
+    /// toolbar changed: every tab switch and every keystroke, since the editor reports
+    /// what is active under the caret as it moves. That was most of the time a tab switch
+    /// took.
     var body: some View {
-        ViewThatFits(in: .horizontal) {
-            row(.none)
-            row(.inserts)
-            row(.insertsAndIndent)
-            row(.everythingOptional)
-            row(.minimal)
-            ScrollView(.horizontal, showsIndicators: false) { row(.minimal) }
-                .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+        let stage = Overflow.allCases.first { Self.width(of: $0) <= available }
+        Group {
+            if let stage {
+                row(stage)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) { row(.minimal) }
+                    .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+            }
         }
+        .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { available = $0 }
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
     }
 
+    @State private var available: CGFloat = 0
+
+    /// How wide a row is at each stage. Every control has a fixed width, so this is
+    /// arithmetic rather than measurement; the smoke test checks the result by looking
+    /// for the More button and the bell inside the window at its narrowest.
+    private static func width(of overflow: Overflow) -> CGFloat {
+        let compact = overflow.isCompact
+        let gap = compact ? 1.0 : Metrics.spacing
+        let normal = compact ? Metrics.compactWidth : Metrics.width
+        let wide = compact ? Metrics.compactWideWidth : Metrics.wideWidth
+        let divider: CGFloat = 1 + (compact ? 4 : 8)
+
+        var items: [CGFloat] = []
+        if !overflow.hidesHistoryAndColour { items += [normal, normal, divider] }
+        items += [normal, normal, normal]
+        if !overflow.hidesStrike { items.append(normal) }
+        items.append(divider)
+        if !overflow.hidesHistoryAndColour { items += [Metrics.width, Metrics.width, divider] }
+        items += [96, divider, wide, wide, wide]
+        if !overflow.hidesIndent { items += [normal, normal] }
+        items.append(divider)
+        if !overflow.hidesInserts { items += [normal, normal, normal] }
+        items.append(wide)
+        if overflow != .none { items.append(Metrics.width) }
+
+        // A few points spare, so rounding never leaves the bell clipped.
+        return items.reduce(0, +) + gap * CGFloat(items.count - 1) + 4
+    }
+
     /// How much has been moved into the More menu.
-    private enum Overflow: Int {
+    private enum Overflow: Int, CaseIterable {
         case none, inserts, insertsAndIndent, everythingOptional, minimal
 
         var hidesInserts: Bool { rawValue >= 1 }
         var hidesIndent: Bool { rawValue >= 2 }
         var hidesStrike: Bool { rawValue >= 3 }
         var isCompact: Bool { rawValue >= 3 }
-        /// The last stage before scrolling, for a window at its minimum width with all
-        /// three columns showing: Undo and Redo (which ⌘Z and ⇧⌘Z cover) and the colour
+        /// The last stage before scrolling, for a window at its minimum width with the
+        /// sidebar showing: Undo and Redo (which ⌘Z and ⇧⌘Z cover) and the colour
         /// menus go too. Without it the row scrolled and the More button itself was
         /// cut off at the edge.
         var hidesHistoryAndColour: Bool { rawValue >= 4 }

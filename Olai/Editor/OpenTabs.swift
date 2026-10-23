@@ -4,7 +4,7 @@ import Observation
 /// Which pages are open in the detail column, and which of them is in front.
 ///
 /// Opening a page that is already open brings it forward rather than opening it twice,
-/// so clicking around the page list does not fill the bar with duplicates.
+/// so the bar never holds the same page twice.
 @MainActor
 @Observable
 final class OpenTabs {
@@ -18,6 +18,10 @@ final class OpenTabs {
 
     private(set) var ids: [UUID] = []
     private(set) var active: UUID?
+
+    /// A page that was just made, whose title field should take the keyboard when it
+    /// appears. Cleared by the field once it has.
+    var titleFocusRequest: UUID?
 
     /// Most recently looked at first, for deciding what to drop at the limit.
     @ObservationIgnored private var recency: [UUID] = []
@@ -35,7 +39,23 @@ final class OpenTabs {
         activate(id)
     }
 
+    /// What a click in the sidebar does, as in Obsidian: the page replaces the one in
+    /// front, rather than every click adding a tab until the bar is full. A page that
+    /// is already open in a tab is brought forward instead. ⌘-click opens a new tab.
+    func show(_ id: UUID) {
+        if ids.contains(id) {
+            activate(id)
+        } else if let active, let index = ids.firstIndex(of: active) {
+            ids[index] = id
+            recency.removeAll { $0 == active }
+            activate(id)
+        } else {
+            open(id)
+        }
+    }
+
     func activate(_ id: UUID) {
+        PerfLog.mark("activate")
         active = id
         recency.removeAll { $0 == id }
         recency.insert(id, at: 0)

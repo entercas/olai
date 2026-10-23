@@ -10,6 +10,10 @@
 // Every click is guarded: before the mouse goes down, the window under that exact point
 // must belong to Olai. An earlier version checked only which app was frontmost, focus
 // moved between the check and the click, and the click landed in someone's mail.
+//
+// With OLAI_PID set, everything -- reading, clicking, typing -- is held to that one
+// process, so a test instance can run beside a copy of Olai someone is using. Matching by
+// name alone once resized the person's own window instead of the test's.
 
 import AppKit
 import ApplicationServices
@@ -17,6 +21,15 @@ import CoreGraphics
 import Foundation
 
 let appName = "Olai"
+let targetPID: pid_t? = ProcessInfo.processInfo.environment["OLAI_PID"].flatMap { pid_t($0) }
+
+func isTarget(_ app: NSRunningApplication?) -> Bool {
+    guard let app else { return false }
+    if let targetPID { return app.processIdentifier == targetPID }
+    return app.localizedName == appName
+}
+
+var targetIsFrontmost: Bool { isTarget(NSWorkspace.shared.frontmostApplication) }
 
 struct Node {
     let element: AXUIElement
@@ -24,7 +37,7 @@ struct Node {
     let label: String
     let frame: CGRect?
     let depth: Int
-    /// Inside the editor's web content, as opposed to the page list or the toolbar.
+    /// Inside the editor's web content, as opposed to the sidebar or the toolbar.
     let inEditor: Bool
 }
 
@@ -73,7 +86,7 @@ func walk(_ element: AXUIElement, depth: Int = 0, inEditor: Bool = false, into n
 }
 
 func olai() -> (NSRunningApplication, AXUIElement) {
-    guard let app = NSWorkspace.shared.runningApplications.first(where: { $0.localizedName == appName }) else {
+    guard let app = NSWorkspace.shared.runningApplications.first(where: isTarget) else {
         fputs("Olai is not running\n", stderr); exit(2)
     }
     return (app, AXUIElementCreateApplication(app.processIdentifier))
@@ -86,7 +99,7 @@ func nodes() -> [Node] {
 }
 
 /// How a query narrows the tree, applied in this order:
-///   `editor/`          only the page's own text, not the page list's previews of it
+///   `editor/`          only the page's own text, not the sidebar's or the tabs' titles
 ///   `AXButton:`        only that role
 ///   `=Inbox`           a label that is exactly this, not "Inbox · Edited now"
 ///   anything else      a label containing the text, ignoring case
@@ -137,22 +150,23 @@ func pick(_ text: String, _ index: Int) -> Node {
     return found[index]
 }
 
-/// Which app owns the topmost normal window at this point, right now.
-func ownerOfWindow(at point: CGPoint) -> String? {
+/// Which process owns the topmost normal window at this point, right now.
+func ownerOfWindow(at point: CGPoint) -> pid_t? {
     let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
         as? [[String: Any]] ?? []
     for window in list where (window[kCGWindowLayer as String] as? Int ?? 0) == 0 {
         guard let bounds = window[kCGWindowBounds as String] as? [String: CGFloat] else { continue }
         let rect = CGRect(x: bounds["X"] ?? 0, y: bounds["Y"] ?? 0,
                           width: bounds["Width"] ?? 0, height: bounds["Height"] ?? 0)
-        if rect.contains(point) { return window[kCGWindowOwnerName as String] as? String }
+        if rect.contains(point) { return window[kCGWindowOwnerPID as String] as? pid_t }
     }
     return nil
 }
 
 func click(at point: CGPoint, button: CGMouseButton = .left) {
-    if NSWorkspace.shared.frontmostApplication?.localizedName != appName {
-        olai().0.activate()
+    let target = olai().0
+    if !targetIsFrontmost {
+        target.activate()
         usleep(500_000)
     }
     func post(_ type: CGEventType) {
@@ -163,13 +177,28 @@ func click(at point: CGPoint, button: CGMouseButton = .left) {
     // sleep in between: the gap is where focus moved last time.
     post(.mouseMoved)
     usleep(150_000)
-    guard ownerOfWindow(at: point) == appName else {
-        fputs("REFUSED: the window at \(point) belongs to \(ownerOfWindow(at: point) ?? "nothing")\n", stderr)
+    guard ownerOfWindow(at: point) == target.processIdentifier else {
+        let owner = ownerOfWindow(at: point).flatMap { NSRunningApplication(processIdentifier: $0)?.localizedName }
+        fputs("REFUSED: the window at \(point) belongs to \(owner ?? "nothing")\n", stderr)
         exit(4)
     }
     post(button == .left ? .leftMouseDown : .rightMouseDown)
     usleep(60_000)
     post(button == .left ? .leftMouseUp : .rightMouseUp)
+}
+
+/// The editor's web area, found without descending into lists and outlines: a sidebar
+/// of a thousand rows would otherwise be most of the time a poll takes.
+func webArea(in element: AXUIElement, depth: Int = 0) -> AXUIElement? {
+    guard depth < 40 else { return nil }
+    let role: String = attribute(element, kAXRoleAttribute) ?? ""
+    if role == "AXWebArea" { return element }
+    if ["AXOutline", "AXTable", "AXList"].contains(role) { return nil }
+    let children: [AXUIElement] = attribute(element, kAXChildrenAttribute) ?? []
+    for child in children {
+        if let found = webArea(in: child, depth: depth + 1) { return found }
+    }
+    return nil
 }
 
 // MARK: Commands
@@ -217,13 +246,53 @@ case "click", "rightclick":
     let centre = CGPoint(x: f.midX, y: f.midY)
     click(at: centre, button: command == "click" ? .left : .right)
     print("\(command)ed \(node.role) \(node.label) at \(Int(centre.x)),\(Int(centre.y))")
+case "clickat":
+    // clickat <x> <y>: a click at a point, for a place with no element of its own --
+    // the blank space under the sidebar's tree.
+    let x = Double(text) ?? 0
+    let y = Double(args.count > 2 ? args[2] : "0") ?? 0
+    click(at: CGPoint(x: x, y: y))
+    print("clicked at \(Int(x)),\(Int(y))")
+case "drag":
+    // drag <from text> <to text>: press on one element, move to another, let go.
+    let from = pick(text, 0)
+    let to = pick(args.count > 2 ? args[2] : "", 0)
+    guard let a = from.frame, let b = to.frame else { fputs("element has no frame\n", stderr); exit(3) }
+    let start = CGPoint(x: a.midX, y: a.midY)
+    let end = CGPoint(x: b.midX, y: b.midY)
+    let target = olai().0
+    if !targetIsFrontmost { target.activate(); usleep(500_000) }
+    guard ownerOfWindow(at: start) == target.processIdentifier, ownerOfWindow(at: end) == target.processIdentifier else {
+        fputs("REFUSED: the drag would leave Olai's window\n", stderr); exit(4)
+    }
+    func post(_ type: CGEventType, _ point: CGPoint) {
+        CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: point, mouseButton: .left)?
+            .post(tap: .cghidEventTap)
+    }
+    // Paced like a hand: a pause after pressing, a few small moves to start the drag,
+    // then the rest of the way, and a pause over the target before letting go.
+    post(.mouseMoved, start); usleep(150_000)
+    post(.leftMouseDown, start); usleep(250_000)
+    for nudge in 1...6 {
+        post(.leftMouseDragged, CGPoint(x: start.x + Double(nudge) * 2, y: start.y + Double(nudge)))
+        usleep(25_000)
+    }
+    for step in 1...30 {
+        let t = Double(step) / 30
+        post(.leftMouseDragged, CGPoint(x: start.x + 12 + (end.x - start.x - 12) * t,
+                                        y: start.y + 6 + (end.y - start.y - 6) * t))
+        usleep(25_000)
+    }
+    post(.leftMouseDragged, end); usleep(UInt32(ProcessInfo.processInfo.environment["DRAG_HOLD_MS"].flatMap { Int($0) } ?? 400) * 1000)
+    post(.leftMouseUp, end)
+    print("dragged \(from.label) to \(to.label)")
 case "value":
     let node = pick(text, index)
     let value = attribute(node.element, kAXValueAttribute) as Any?
     print((value as? String) ?? (value.map { "\($0)" } ?? ""))
 case "type":
     // Typed only into Olai: refuses if anything else has keyboard focus.
-    guard NSWorkspace.shared.frontmostApplication?.localizedName == appName else {
+    guard targetIsFrontmost else {
         fputs("REFUSED: Olai is not the frontmost app\n", stderr); exit(4)
     }
     for scalar in text.unicodeScalars {
@@ -238,7 +307,7 @@ case "type":
     print("typed \(text.count) characters")
 case "key":
     // key <virtual keycode> [cmd,shift,opt,ctrl]
-    guard NSWorkspace.shared.frontmostApplication?.localizedName == appName else {
+    guard targetIsFrontmost else {
         fputs("REFUSED: Olai is not the frontmost app\n", stderr); exit(4)
     }
     let code = CGKeyCode(Int(text) ?? 0)
@@ -257,8 +326,9 @@ case "key":
 case "windowid":
     // For `screencapture -l`, so a screenshot shows Olai's window and nothing else on screen.
     let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
+    let pid = olai().0.processIdentifier
     let window = list.first {
-        ($0[kCGWindowOwnerName as String] as? String) == appName && ($0[kCGWindowLayer as String] as? Int) == 0
+        ($0[kCGWindowOwnerPID as String] as? pid_t) == pid && ($0[kCGWindowLayer as String] as? Int) == 0
     }
     print((window?[kCGWindowNumber as String] as? Int).map(String.init) ?? "")
 case "resize":
@@ -279,6 +349,39 @@ case "trusted":
     // for a reason that has nothing to do with Olai.
     print(AXIsProcessTrusted() ? "yes" : "no")
     exit(AXIsProcessTrusted() ? 0 : 6)
+case "frontmost":
+    // Whether the target is in front, for the shell's keystroke guard.
+    print(targetIsFrontmost ? "yes" : "no")
+case "reopen":
+    // What clicking the Dock icon sends: asks the app for a window if it has none. Sent
+    // to the process itself, never by name, which would reach whichever copy is running.
+    let pid = olai().0.processIdentifier
+    let target = NSAppleEventDescriptor(processIdentifier: pid)
+    let event = NSAppleEventDescriptor(eventClass: AEEventClass(kCoreEventClass),
+                                       eventID: AEEventID(kAEReopenApplication),
+                                       targetDescriptor: target, returnID: AEReturnID(kAutoGenerateReturnID),
+                                       transactionID: AETransactionID(kAnyTransactionID))
+    _ = try? event.sendEvent(options: [.noReply], timeout: 5)
+    print("reopened")
+case "waitweb":
+    // waitweb <text> [timeout ms]: how long until the page's own text contains `text`.
+    // Polls only the editor's web area, so a long sidebar does not slow the clock.
+    let timeout = Double(args.count > 2 ? args[2] : "10000") ?? 10000
+    let start = Date()
+    while Date().timeIntervalSince(start) * 1000 < timeout {
+        var found = false
+        if let web = webArea(in: olai().1) {
+            var inner: [Node] = []
+            walk(web, into: &inner)
+            found = inner.contains { $0.label.localizedCaseInsensitiveContains(text) }
+        }
+        if found {
+            print(Int(Date().timeIntervalSince(start) * 1000))
+            exit(0)
+        }
+        usleep(20_000)
+    }
+    print("timeout"); exit(7)
 case "activate":
     olai().0.activate()
     usleep(400_000)

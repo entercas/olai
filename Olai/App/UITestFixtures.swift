@@ -26,7 +26,29 @@ enum UITestFixtures {
         scheduledTaskPage(in: personal, context)
         page("Inbox", in: nil, order: 0, markdown: "Loose thoughts go here.", context)
 
+        if ProcessInfo.processInfo.arguments.contains("-OlaiUITestingLarge") {
+            seedLargeLibrary(context)
+        }
+
         try? context.save()
+    }
+
+    /// A library the size of a real one -- a OneNote export runs to hundreds of pages --
+    /// for timing what a person waits on. The fixture above is too small to be slow, and
+    /// that is how a tab switch that took a second on a full library passed every test.
+    private static func seedLargeLibrary(_ context: ModelContext) {
+        let paragraph = String(repeating: "Notes from the meeting about the plan and what comes next. ", count: 6)
+        for f in 0..<40 {
+            let folder = Folder(name: "Notebook \(f + 1)", sortOrder: 10 + f)
+            context.insert(folder)
+            for p in 0..<25 {
+                let title = "Page \(f + 1)-\(p + 1)"
+                var text = "Marker \(title)\n"
+                for _ in 0..<40 { text += paragraph + "\n" }
+                let body = TipTapDocument.document(fromPlainText: text)
+                context.insert(Page(title: title, body: body, plainText: text, sortOrder: p, folder: folder))
+            }
+        }
     }
 
     /// A task with a reminder on it. Built as the editor stores one rather than from

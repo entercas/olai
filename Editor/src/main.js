@@ -1,7 +1,7 @@
 import './editor.css'
 
 import { Editor, InputRule } from '@tiptap/core'
-import { Plugin } from '@tiptap/pm/state'
+import { EditorState, Plugin } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import { Transformer } from 'markmap-lib'
 import { Markmap } from 'markmap-view'
@@ -214,9 +214,19 @@ const editor = new Editor({
 })
 
 // Saves are debounced 500 ms after the last change, as the spec describes.
+// Each save names the page it belongs to. One editor now serves every tab, so a save
+// still waiting when the tab changes must not land on the page that replaced it.
 const sendDocument = debounce(() => {
-  post('documentChanged', { json: editor.getJSON(), plainText: editor.getText() })
+  post('documentChanged', {
+    pageID: currentPageID,
+    json: editor.getJSON(),
+    plainText: editor.getText(),
+  })
 }, 500)
+
+let currentPageID = null
+const scrollPositions = new Map()
+const scroller = () => document.querySelector('#editor')
 
 /** What the SwiftUI toolbar needs to draw itself: which marks and blocks are active,
  *  and whether the caret sits in a task item that could be scheduled. */
@@ -437,13 +447,16 @@ function replaceDictation(spoken, utterance) {
 
 /** Everything Swift can call. */
 window.olai = {
-  setDocument({ json, readOnly }) {
+  setDocument({ json, readOnly, pageID }) {
+    const started = performance.now()
+    // Whatever the last page still owes is written first, under its own id.
+    sendDocument.flush()
+    if (currentPageID !== null) scrollPositions.set(currentPageID, scroller()?.scrollTop ?? 0)
+
+    currentPageID = pageID ?? null
+    dictation = null
     editor.setEditable(!readOnly)
 
-    // Dispatched by hand rather than through setContent so the step can be marked
-    // `addToHistory: false`. Loading a page is not an edit: left in the history,
-    // one undo too many on a freshly opened page walks back past the load and
-    // blanks the document.
     // Swift sends the document as a JSON string rather than splicing it into the
     // expression it evaluates, so nothing stored in a page is ever treated as source.
     let parsed = EMPTY_DOC
@@ -457,14 +470,22 @@ window.olai = {
       parsed = json
     }
 
+    // A fresh state rather than a transaction: switching tabs loads a different page
+    // into the same editor, and a new state starts it with an empty undo history.
+    // Replacing the content by a transaction kept the history, so undo on a page just
+    // switched to walked back into the one before it. Loading is not an edit either:
+    // nothing here reaches onUpdate, so opening a page never saves it.
     const doc = editor.schema.nodeFromJSON(parsed)
-    const transaction = editor.state.tr
-      .replaceWith(0, editor.state.doc.content.size, doc.content)
-      .setMeta('addToHistory', false)
-    editor.view.dispatch(transaction)
+    editor.view.updateState(
+      EditorState.create({ doc, schema: editor.schema, plugins: editor.state.plugins }),
+    )
+
+    const element = scroller()
+    if (element) element.scrollTop = scrollPositions.get(currentPageID) ?? 0
 
     if (mindMapVisible) renderMindMap()
     sendState()
+    post('loaded', { ms: Math.round(performance.now() - started) })
   },
 
   insertText({ text }) {

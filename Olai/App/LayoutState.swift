@@ -4,7 +4,7 @@ import SwiftUI
 import AppKit
 #endif
 
-/// Which columns are showing.
+/// Whether the sidebar is showing.
 ///
 /// Held outside the view so the View menu can drive it. Menu commands are built beside
 /// the scene, not inside the view hierarchy, and a keyboard shortcut attached to a
@@ -17,23 +17,17 @@ final class LayoutState {
         didSet { AppEnvironment.defaults.set(showFolders, forKey: Self.foldersKey) }
     }
 
-    var showPageList = true {
-        didSet { AppEnvironment.defaults.set(showPageList, forKey: Self.pagesKey) }
-    }
-
     private static let foldersKey = "layout.showFolders"
-    private static let pagesKey = "layout.showPageList"
 
     init() {
         let defaults = AppEnvironment.defaults
         // `object(forKey:)` rather than `bool(forKey:)`: a missing key reads as false,
         // which would start a fresh install with every column hidden.
         showFolders = defaults.object(forKey: Self.foldersKey) as? Bool ?? true
-        showPageList = defaults.object(forKey: Self.pagesKey) as? Bool ?? true
     }
 
     var columnVisibility: NavigationSplitViewVisibility {
-        showFolders ? .all : .doubleColumn
+        showFolders ? .all : .detailOnly
     }
 
     /// Whether the change being made right now comes from a person -- a click, a drag, a
@@ -54,17 +48,30 @@ final class LayoutState {
     }
 }
 
-/// View ▸ Folders / Page List.
+/// View ▸ Sidebar, and File ▸ New Page / New Folder.
 struct LayoutCommands: Commands {
     @Bindable var layout: LayoutState
+    @FocusedValue(\.treeActions) private var actions
 
     var body: some Commands {
         CommandGroup(after: .sidebar) {
-            Toggle("Folders", isOn: $layout.showFolders)
+            Toggle("Sidebar", isOn: $layout.showFolders)
                 .keyboardShortcut("1", modifiers: [.command, .option])
-            Toggle("Page List", isOn: $layout.showPageList)
-                .keyboardShortcut("2", modifiers: [.command, .option])
             Divider()
         }
+        // In place of New Window: one window holds every page, as tabs.
+        CommandGroup(replacing: .newItem) {
+            Button("New Page") { actions?.newPage() }
+                .keyboardShortcut("n", modifiers: .command)
+                .disabled(actions == nil)
+            Button("New Folder") { actions?.newFolder() }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
+                .disabled(actions == nil)
+        }
     }
+}
+
+extension FocusedValues {
+    /// The window's create and open actions, for the menu bar.
+    @Entry var treeActions: TreeActions?
 }

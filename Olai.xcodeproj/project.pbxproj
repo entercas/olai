@@ -26,7 +26,6 @@
 		5FF096350C03DC621FDE10FD /* NoteTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BD4C92D8D37BDAF3AA9B022 /* NoteTree.swift */; };
 		7905D6513D08A17E73CE9D55 /* PageEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADC9C75EE5A57412F76783F2 /* PageEditorView.swift */; };
 		8069A0BB70EA4F5F11623F17 /* MirrorExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB6462A890B985F1DD3C4EEB /* MirrorExporter.swift */; };
-		8188E5B3E55F5DDDF1E77EB4 /* PageListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8440ABDB849E44F4B6823B3A /* PageListView.swift */; };
 		8E2D4C93EC8C790C57D61FF3 /* NoteTree+Templates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2238EE7DEC5F9936E54682DA /* NoteTree+Templates.swift */; };
 		985685FD76E0141285A916BB /* FolderTags.swift in Sources */ = {isa = PBXBuildFile; fileRef = 748D9D7A04E1D1B7CE2F36EA /* FolderTags.swift */; };
 		9EBC5C7AD321DFD4B4967EFC /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E73DEC46E4B1C85ED20D72 /* AppEnvironment.swift */; };
@@ -78,7 +77,6 @@
 		748D9D7A04E1D1B7CE2F36EA /* FolderTags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderTags.swift; sourceTree = "<group>"; };
 		79ACF9C4BEFE4B66749FBDA4 /* project.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = project.json; sourceTree = "<group>"; };
 		7BCA66FCBCBF59E9685F7CB8 /* TaskScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskScheduler.swift; sourceTree = "<group>"; };
-		8440ABDB849E44F4B6823B3A /* PageListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageListView.swift; sourceTree = "<group>"; };
 		8B19871D04521AAB0C9D5708 /* EditorWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorWebView.swift; sourceTree = "<group>"; };
 		8FD069D6A33E2AF7FD31AB86 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		92E723D1F71911CD23D33C62 /* EditorController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorController.swift; sourceTree = "<group>"; };
@@ -208,7 +206,6 @@
 				C2AE67FA1FA45839EE0FF71B /* DraggedItem.swift */,
 				748D9D7A04E1D1B7CE2F36EA /* FolderTags.swift */,
 				6BD4C92D8D37BDAF3AA9B022 /* NoteTree.swift */,
-				8440ABDB849E44F4B6823B3A /* PageListView.swift */,
 				B8E2A25E0D44A18FB5420ACF /* SidebarExpansion.swift */,
 				8FD069D6A33E2AF7FD31AB86 /* SidebarView.swift */,
 			);
@@ -360,7 +357,6 @@
 				B8CB4BF0E14536659A6E2B41 /* OlaiSchemeHandler.swift in Sources */,
 				22869D602FD3A44498153F0B /* OpenTabs.swift in Sources */,
 				7905D6513D08A17E73CE9D55 /* PageEditorView.swift in Sources */,
-				8188E5B3E55F5DDDF1E77EB4 /* PageListView.swift in Sources */,
 				FD11DE009BF226C42F3C4091 /* PasteboardImage.swift in Sources */,
 				FAA409922064C7B1139A696D /* RootView.swift in Sources */,
 				CA4AE14565D9CEA3146F6C02 /* ScheduleTaskSheet.swift in Sources */,
@@ -441,7 +437,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = YQSS8GQ6Y4;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -462,7 +458,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.3.2;
+				MARKETING_VERSION = 1.4.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -510,7 +506,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = YQSS8GQ6Y4;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -526,7 +522,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.3.2;
+				MARKETING_VERSION = 1.4.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

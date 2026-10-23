@@ -12,26 +12,28 @@ enum NoteTree {
 
     @discardableResult
     static func addFolder(named name: String = "New Folder", in parent: Folder?, context: ModelContext) -> Folder {
-        let siblings = parent?.sortedChildren ?? rootFolders(context: context)
-        let folder = Folder(
-            name: name,
-            sortOrder: (siblings.map(\.sortOrder).max() ?? -1) + 1,
-            parent: parent
-        )
+        let siblings = allFolders(context: context).filter { $0.parent?.id == parent?.id }
+        let folder = Folder(name: name, sortOrder: (siblings.map(\.sortOrder).max() ?? -1) + 1)
+        // Inserted before it is parented. A relationship set on an object the context
+        // does not yet hold can leave the other side -- the parent's list of children --
+        // without it until the next save.
         context.insert(folder)
+        folder.parent = parent
         return folder
     }
 
+    /// A new page goes at the bottom of its folder. Its title starts empty, with
+    /// "Untitled" shown in its place, so typing a name does not first mean deleting one.
     @discardableResult
-    static func addPage(titled title: String = "Untitled", in folder: Folder?, context: ModelContext) -> Page {
-        let siblings = folder?.sortedPages ?? rootPages(context: context)
+    static func addPage(titled title: String = "", in folder: Folder?, context: ModelContext) -> Page {
+        let siblings = allPages(context: context).filter { $0.folder?.id == folder?.id }
         let page = Page(
             title: title,
             body: TipTapDocument.emptyDocument,
-            sortOrder: (siblings.map(\.sortOrder).max() ?? -1) + 1,
-            folder: folder
+            sortOrder: (siblings.map(\.sortOrder).max() ?? -1) + 1
         )
         context.insert(page)
+        page.folder = folder
         return page
     }
 
@@ -57,10 +59,20 @@ enum NoteTree {
     static func move(_ folder: Folder, to destination: Folder?) {
         guard destination?.id != folder.id else { return }
         if let destination, folder.contains(destination) { return }
+        if let context = folder.modelContext {
+            let siblings = allFolders(context: context).filter { $0.parent?.id == destination?.id && $0.id != folder.id }
+            folder.sortOrder = (siblings.map(\.sortOrder).max() ?? -1) + 1
+        }
         folder.parent = destination
     }
 
+    /// A moved page goes to the bottom of its new folder, as a new one does. Keeping its
+    /// old position put it somewhere in the middle, wherever that number fell.
     static func move(_ page: Page, to destination: Folder?) {
+        if let context = page.modelContext {
+            let siblings = allPages(context: context).filter { $0.folder?.id == destination?.id && $0.id != page.id }
+            page.sortOrder = (siblings.map(\.sortOrder).max() ?? -1) + 1
+        }
         page.folder = destination
         page.updatedAt = Date()
     }
@@ -102,13 +114,19 @@ enum NoteTree {
     // MARK: Queries
 
     static func rootFolders(context: ModelContext) -> [Folder] {
-        let all = (try? context.fetch(FetchDescriptor<Folder>())) ?? []
-        return all.filter { $0.parent == nil }.sorted(by: Folder.displayOrder)
+        allFolders(context: context).filter { $0.parent == nil }.sorted(by: Folder.displayOrder)
     }
 
     static func rootPages(context: ModelContext) -> [Page] {
-        let all = (try? context.fetch(FetchDescriptor<Page>())) ?? []
-        return all.filter { $0.folder == nil }.sorted(by: Page.displayOrder)
+        allPages(context: context).filter { $0.folder == nil }.sorted(by: Page.displayOrder)
+    }
+
+    private static func allFolders(context: ModelContext) -> [Folder] {
+        (try? context.fetch(FetchDescriptor<Folder>())) ?? []
+    }
+
+    private static func allPages(context: ModelContext) -> [Page] {
+        (try? context.fetch(FetchDescriptor<Page>())) ?? []
     }
 
     /// Every folder in tree order, paired with its depth, for flat "move to" menus.

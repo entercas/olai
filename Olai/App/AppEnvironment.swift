@@ -32,3 +32,11 @@ enum AppEnvironment {
         return store
     }()
 }
+
+/// Timestamps for the UI test's timing checks, written only in test mode.
+enum PerfLog {
+    static func mark(_ event: String) {
+        guard AppEnvironment.isUITesting else { return }
+        NSLog("olai-perf %.1f %@", ProcessInfo.processInfo.systemUptime * 1000, event)
+    }
+}

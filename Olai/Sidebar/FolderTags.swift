@@ -69,33 +69,24 @@ struct FolderTagMenu: View {
     }
 }
 
-/// The strip of coloured tabs that stands in for the notebook column while it is hidden.
+/// The strip of coloured tabs that stands in for the sidebar while it is hidden.
 ///
-/// Collapsing the folders used to mean losing the only way to change folder without
-/// bringing them back. These are the top-level folders as binder tabs: the colour and
-/// the first letter, with the full name on hover.
+/// These are the top-level folders as binder tabs: the colour and the first letter, with
+/// the full name on hover. Clicking one brings the sidebar back open at that folder.
 struct FolderTagRail: View {
     let folders: [Folder]
-    @Binding var scope: NotebookScope?
+    let selectedFolder: UUID?
+    let onSelect: (Folder) -> Void
 
     var body: some View {
         VStack(spacing: 6) {
-            tab(
-                label: "All",
-                color: .secondary,
-                isSelected: scope == .allPages,
-                title: "All Pages"
-            ) { scope = .allPages }
-
-            Divider().frame(width: 18)
-
             ForEach(folders) { folder in
                 tab(
                     label: String(folder.name.prefix(1)).uppercased(),
                     color: FolderTag.inheritedColor(for: folder) ?? .secondary,
-                    isSelected: scope == .folder(folder.id),
+                    isSelected: selectedFolder == folder.id,
                     title: folder.name
-                ) { scope = .folder(folder.id) }
+                ) { onSelect(folder) }
             }
 
             Spacer(minLength: 0)

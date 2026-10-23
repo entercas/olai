@@ -79,6 +79,7 @@ private struct TabItem: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(title)
+            .accessibilityIdentifier("tab:\(title)")
             .accessibilityAddTraits(isActive ? .isSelected : [])
 
             Button(action: close) {

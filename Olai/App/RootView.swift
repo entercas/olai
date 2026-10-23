@@ -2,13 +2,12 @@ import OlaiCore
 import SwiftData
 import SwiftUI
 
-/// Owns the tree-level state: what is selected, which pages are open, and the create /
-/// rename / delete flows.
+/// Owns the window's state: what is selected in the sidebar, which pages are open, and
+/// the create / rename / delete flows.
 ///
-/// Three columns rather than two: folders, the pages inside them, then the page itself.
-/// With everything in one tree, a library of any size spent most of its height on the
-/// pages of folders nobody was looking at, and moving between two folders meant
-/// collapsing one to find the other.
+/// Two columns, as in Obsidian: the tree of folders and pages, then the open pages as
+/// tabs. It was three -- folders, a list of the selected folder's pages, then the page --
+/// and that middle list was where most of the trouble was.
 struct RootView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scheduleMirrorExport) private var scheduleMirrorExport
@@ -17,8 +16,9 @@ struct RootView: View {
     @Query private var allPages: [Page]
 
     @Environment(LayoutState.self) private var layout
-    @State private var scope: NotebookScope? = .allPages
-    @State private var selectedPage: UUID?
+    @State private var selection: TreeSelection?
+    @State private var revealRequest: TreeSelection?
+    @State private var expansion = TreeExpansion()
     @State private var tabs = OpenTabs()
     @State private var renameTarget: TreeItem?
     @State private var renameText: String = ""
@@ -36,56 +36,38 @@ struct RootView: View {
                 // still register -- but only when a person did it. The split view also
                 // writes here by itself, restoring state after a force-quit or folding
                 // the sidebar away to fit a narrow window, and since the preference is
-                // saved, one such write left the folders hidden on every launch after.
+                // saved, one such write left the sidebar hidden on every launch after.
                 guard LayoutState.isUserInitiated else { return }
-                layout.showFolders = (visibility == .all)
+                layout.showFolders = (visibility != .detailOnly)
             }
         )) {
-            SidebarView(scope: $scope, actions: actions)
-                .navigationSplitViewColumnWidth(min: 170, ideal: 210, max: 300)
-        } content: {
-            PageListView(scope: scope, openPage: $selectedPage, actions: actions)
-                // Collapsed by pinning the column to no width: a three-column split view
-                // can hide its sidebar or everything but the detail, and has no state for
-                // "sidebar showing, pages hidden".
-                .navigationSplitViewColumnWidth(
-                    min: layout.showPageList ? 200 : 0,
-                    ideal: layout.showPageList ? 260 : 0,
-                    max: layout.showPageList ? 380 : 0
-                )
-                .opacity(layout.showPageList ? 1 : 0)
-                // The rail stands in for the folders while they are hidden.
-                .safeAreaInset(edge: .leading, spacing: 0) {
-                    if !layout.showFolders && layout.showPageList { rail }
-                }
-                .toolbar {
-                    ToolbarItem(placement: .navigation) { layoutMenu }
-                }
+            SidebarView(
+                selection: $selection,
+                revealRequest: $revealRequest,
+                expansion: expansion,
+                actions: actions
+            )
+            .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 400)
         } detail: {
-            DetailView(tabs: tabs)
+            EditorPane(tabs: tabs)
+                // The binder tabs stand in for the sidebar while it is hidden.
                 .safeAreaInset(edge: .leading, spacing: 0) {
-                    if !layout.showFolders && !layout.showPageList { rail }
+                    if !layout.showFolders { rail }
                 }
         }
         #if os(macOS)
         .frame(minWidth: 900, minHeight: 440)
         .toolbarBackground(.visible, for: .windowToolbar)
         #endif
-        // The window's own title, so it spans the whole title bar rather than belonging
-        // to the detail pane.
         .navigationTitle("Olai")
-        // Selecting in the page list opens a tab; the tab bar is what decides which page
-        // the editor shows, so the two are kept in step in both directions.
-        .onChange(of: selectedPage) { _, new in
-            if let new { tabs.open(new) }
+        .focusedSceneValue(\.treeActions, actions)
+        // The sidebar highlights the page in front, whichever way it came to the front.
+        .onChange(of: tabs.active, initial: true) { _, new in
+            if let new, selection != .page(new) { selection = .page(new) }
         }
-        .onChange(of: tabs.active) { _, new in
-            if selectedPage != new { selectedPage = new }
-        }
-        // A page that is deleted, or archived out of the list, must not leave a tab
-        // pointing at nothing.
-        .onChange(of: allPages.map(\.id)) { _, ids in
-            tabs.keepOnly(Set(ids))
+        // A page that is deleted must not leave a tab pointing at nothing.
+        .onChange(of: pageIDs) { _, ids in
+            tabs.keepOnly(ids)
         }
         .fileImporter(
             isPresented: $isImportingTranscript,
@@ -98,6 +80,7 @@ struct RootView: View {
                     into: insertionFolder,
                     context: context
                 )
+                reveal(page)
                 tabs.open(page.id)
                 scheduleMirrorExport()
             } catch {
@@ -157,24 +140,24 @@ struct RootView: View {
         }
     }
 
+    private var pageIDs: Set<UUID> {
+        Set(allPages.map(\.id))
+    }
+
     private var rail: some View {
         FolderTagRail(
             folders: allFolders.filter { $0.parent == nil && !$0.isArchived }
                 .sorted(by: Folder.displayOrder),
-            scope: $scope
-        )
-    }
-
-    /// The same two switches as View ▸ Folders / Page List, within reach of the mouse.
-    private var layoutMenu: some View {
-        @Bindable var layout = layout
-        return Menu {
-            Toggle(isOn: $layout.showFolders) { Label("Folders", systemImage: "folder") }
-            Toggle(isOn: $layout.showPageList) { Label("Page List", systemImage: "list.bullet") }
-        } label: {
-            Label("Layout", systemImage: "sidebar.squares.leading")
+            selectedFolder: {
+                if case let .folder(id) = selection { return id }
+                return nil
+            }()
+        ) { folder in
+            layout.showFolders = true
+            selection = .folder(folder.id)
+            expansion.reveal(folder)
+            revealRequest = .folder(folder.id)
         }
-        .help("Show or hide the columns")
     }
 
     private var actions: TreeActions {
@@ -191,23 +174,17 @@ struct RootView: View {
         }
 
         return TreeActions(
-            newFolder: mirrored(newFolder),
-            newPage: mirrored(newPage),
+            newFolder: mirrored { makeFolder(in: insertionFolder) },
+            newPage: mirrored { makePage(in: insertionFolder) },
             newFromTemplate: mirrored { create(from: $0, in: insertionFolder) },
-            addPage: mirrored { folder in
-                let page = NoteTree.addPage(in: folder, context: context)
-                SidebarExpansion.setExpanded(true, for: folder.id)
-                scope = .folder(folder.id)
-                tabs.open(page.id)
-            },
-            addSubfolder: mirrored { folder in
-                let child = NoteTree.addFolder(in: folder, context: context)
-                SidebarExpansion.setExpanded(true, for: folder.id)
-                beginRename(.folder(child), startingEmpty: true)
-            },
+            addPage: mirrored { folder in makePage(in: folder) },
+            addSubfolder: mirrored { folder in makeFolder(in: folder) },
             addFromTemplate: mirrored { template, folder in create(from: template, in: folder) },
             importTranscript: { isImportingTranscript = true },
             importMarkdown: { isImportingMarkdown = true },
+            open: { id, newTab in
+                if newTab { tabs.open(id) } else { tabs.show(id) }
+            },
             move: { item, destination in
                 let moved = move(item, into: destination)
                 if moved { scheduleMirrorExport() }
@@ -224,33 +201,45 @@ struct RootView: View {
 
     // MARK: Creating
 
-    /// Where new items land: the folder the notebook column has selected, or the top
-    /// level when it is showing All Pages.
-    ///
-    /// It used to fall back to the folder of whichever page was open, so a page made
-    /// from All Pages landed in some folder the person was not looking at, and the list
-    /// then switched to that folder -- everything they had been looking at vanished.
+    /// Where New Page and New Folder put things, as in Obsidian: inside the selected
+    /// folder, or beside the selected page, or at the top level with nothing selected.
+    /// The sidebar shows the selection, so the place is never a surprise -- and the new
+    /// row appears there, selected.
     private var insertionFolder: Folder? {
-        guard case let .folder(id) = scope else { return nil }
-        return allFolders.first { $0.id == id }
+        switch selection {
+        case let .folder(id):
+            return allFolders.first { $0.id == id && !$0.isArchived }
+        case let .page(id):
+            guard let folder = allPages.first(where: { $0.id == id })?.folder, !folder.isArchived else { return nil }
+            return folder
+        case nil:
+            return nil
+        }
     }
 
-    private func newPage() {
-        let page = NoteTree.addPage(in: insertionFolder, context: context)
-        if let folder = insertionFolder {
-            SidebarExpansion.setExpanded(true, for: folder.id)
-        }
+    /// Makes a page, shows it in the tree where it was made, opens it in a new tab and
+    /// puts the cursor in its title.
+    private func makePage(in folder: Folder?) {
+        let page = NoteTree.addPage(in: folder, context: context)
+        try? context.save()
+        reveal(page)
+        tabs.titleFocusRequest = page.id
         tabs.open(page.id)
     }
 
-    /// Creates a folder and asks for its name straight away. The selection is left alone:
-    /// on iPhone, selecting it would push to the detail column and take the prompt with it.
-    private func newFolder() {
-        let folder = NoteTree.addFolder(in: insertionFolder, context: context)
-        if let parent = insertionFolder {
-            SidebarExpansion.setExpanded(true, for: parent.id)
-        }
+    private func makeFolder(in parent: Folder?) {
+        let folder = NoteTree.addFolder(in: parent, context: context)
+        try? context.save()
+        expansion.reveal(parent)
+        selection = .folder(folder.id)
+        revealRequest = .folder(folder.id)
         beginRename(.folder(folder), startingEmpty: true)
+    }
+
+    private func reveal(_ page: Page) {
+        expansion.reveal(page.folder)
+        selection = .page(page.id)
+        revealRequest = .page(page.id)
     }
 
     /// Applies a drag: moves the dragged folder or page into `destination`. Returns
@@ -272,22 +261,15 @@ struct RootView: View {
             NoteTree.move(page, to: destination)
         }
 
-        if let destination {
-            SidebarExpansion.setExpanded(true, for: destination.id)
-        }
+        expansion.reveal(destination)
         return true
     }
 
     /// Builds whatever a template describes and opens the page it produced.
     private func create(from template: NoteTemplate, in parent: Folder?) {
-        if let parent {
-            SidebarExpansion.setExpanded(true, for: parent.id)
-        }
         guard let page = NoteTree.create(from: template, in: parent, context: context) else { return }
-        if let folder = page.folder {
-            SidebarExpansion.setExpanded(true, for: folder.id)
-            scope = .folder(folder.id)
-        }
+        try? context.save()
+        reveal(page)
         tabs.open(page.id)
     }
 
@@ -297,8 +279,8 @@ struct RootView: View {
         switch item {
         case let .folder(folder):
             if archived {
-                if scope == .folder(folder.id) { scope = .allPages }
-                folder.sortedPages.forEach { tabs.close($0.id) }
+                if selection == .folder(folder.id) { selection = nil }
+                closeTabs(under: folder)
             }
             NoteTree.setArchived(archived, on: folder)
         case let .page(page):
@@ -330,8 +312,8 @@ struct RootView: View {
     private func commitDelete() {
         switch deleteTarget {
         case let .folder(folder):
-            if scope == .folder(folder.id) { scope = .allPages }
-            folder.sortedPages.forEach { tabs.close($0.id) }
+            if selection == .folder(folder.id) { selection = nil }
+            closeTabs(under: folder)
             NoteTree.delete(folder, context: context)
         case let .page(page):
             tabs.close(page.id)
@@ -341,6 +323,13 @@ struct RootView: View {
         }
         deleteTarget = nil
         scheduleMirrorExport()
+    }
+
+    /// Every page in the folder and its subfolders.
+    private func closeTabs(under folder: Folder) {
+        for page in allPages where page.folder.map({ folder.contains($0) }) ?? false {
+            tabs.close(page.id)
+        }
     }
 
     private var importSummaryIsPresented: Binding<Bool> {
@@ -365,64 +354,5 @@ struct RootView: View {
         case let .page(page): "Delete “\(page.title)”?"
         case nil: "Delete?"
         }
-    }
-}
-
-/// The detail column: the open pages as tabs, and the one in front below them.
-private struct DetailView: View {
-    let tabs: OpenTabs
-
-    @Query private var pages: [Page]
-
-    var body: some View {
-        VStack(spacing: 0) {
-            EditorTabBar(tabs: tabs, pages: pages)
-
-            if let active = tabs.active, let page = pages.first(where: { $0.id == active }) {
-                PageEditorView(page: page)
-                    .id(page.id)
-            } else {
-                ContentUnavailableView(
-                    "No page open",
-                    systemImage: "doc.text",
-                    description: Text("Pick a page in the list, or make one with New Page.")
-                )
-            }
-        }
-    }
-}
-
-/// New Page, with the templates and the importers behind it.
-///
-/// Click for a blank page; hold for the rest. A separate toolbar item for each template
-/// would not fit beside a column this narrow -- they land in the overflow menu, where
-/// nobody finds them.
-struct NewPageButton: View {
-    let actions: TreeActions
-    let folder: Folder?
-
-    var body: some View {
-        Menu {
-            ForEach(TemplateStore.all) { template in
-                Button(template.name) {
-                    if let folder {
-                        actions.addFromTemplate(template, folder)
-                    } else {
-                        actions.newFromTemplate(template)
-                    }
-                }
-            }
-            Divider()
-            Button("Import Transcript…", systemImage: "waveform") { actions.importTranscript() }
-            Button("Import Markdown Folder…", systemImage: "folder.badge.plus") { actions.importMarkdown() }
-        } label: {
-            Label("New Page", systemImage: "square.and.pencil")
-        } primaryAction: {
-            if let folder { actions.addPage(folder) } else { actions.newPage() }
-        }
-        .help(folder.map { "New page in “\($0.name)” — hold for templates" } ?? "New page — hold for templates")
-        // A menu with a primary action does not pass its label's text to accessibility,
-        // so VoiceOver announced it only by its tooltip.
-        .accessibilityLabel("New Page")
     }
 }

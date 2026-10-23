@@ -4,7 +4,7 @@ import SwiftData
 
 /// Recomputes each page's stored plain text from its document.
 ///
-/// Plain text is derived, kept only for search and the page list's preview. When the way
+/// Plain text is derived, kept only for search and the Markdown mirror. When the way
 /// it is derived changes -- list items used to run together with nothing between them --
 /// pages written before the change keep the old text until someone next edits them, so
 /// search misses them and their previews read wrong. Recomputing is cheap and touches

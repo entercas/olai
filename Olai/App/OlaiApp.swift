@@ -16,6 +16,13 @@ struct OlaiApp: App {
 
     init() {
         #if os(macOS)
+        // No autocorrect bubble in the editor. With "Correct spelling automatically" on --
+        // the macOS default -- a correction leaves a bubble under the word, and the next
+        // click anywhere in the window only dismisses it: clicking a tab after typing did
+        // nothing, and took a second click. Misspellings are still underlined, as in
+        // Obsidian. Registered, not set, so Edit ▸ Spelling and Grammar still turns it
+        // back on for anyone who wants it, and remembers that.
+        UserDefaults.standard.register(defaults: ["WebAutomaticSpellingCorrectionEnabled": false])
         switch AppEnvironment.forcedAppearance {
         case "light": NSApplication.shared.appearance = NSAppearance(named: .aqua)
         case "dark": NSApplication.shared.appearance = NSAppearance(named: .darkAqua)
