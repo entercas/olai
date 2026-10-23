@@ -20,7 +20,7 @@ settings:
     # Keep in step with the git tag: the first two releases both shipped reporting
     # 0.1.0, so Get Info disagreed with the release they came from.
     MARKETING_VERSION: "1.4.0"
-    CURRENT_PROJECT_VERSION: "8"
+    CURRENT_PROJECT_VERSION: "9"
   configs:
     Release:
       # Notarisation requires the hardened runtime. It costs nothing in a debug build
