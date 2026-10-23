@@ -15,6 +15,8 @@ import PhotosUI
 /// web view is made once, and changing tab only loads a different document into it.
 struct EditorPane: View {
     let tabs: OpenTabs
+    /// The sidebar's selection, which follows the page in front.
+    @Binding var selection: TreeSelection?
 
     @Environment(\.modelContext) private var context
     @Environment(\.colorScheme) private var colorScheme
@@ -88,7 +90,13 @@ struct EditorPane: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .onAppear(perform: wire)
-        .onChange(of: tabs.active, initial: true) { _, _ in show(activePage) }
+        .onChange(of: tabs.active, initial: true) { _, new in
+            show(activePage)
+            // The sidebar highlights the page in front, whichever way it came to the
+            // front. Kept here rather than in the window's root view: reading the tab
+            // there redrew the whole window, sidebar included, on every switch.
+            if let new, selection != .page(new) { selection = .page(new) }
+        }
         .onChange(of: colorScheme) { _, new in controller.applyTheme(dark: new == .dark) }
         .onDisappear {
             controller.flush()

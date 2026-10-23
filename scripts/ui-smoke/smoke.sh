@@ -286,10 +286,13 @@ ax press "AXMenuButton:Highlight" 0 >/dev/null; settle 0.6
 ax press "AXMenuItem:Green" 0 >/dev/null; settle
 check "highlight takes a colour"                "$(ax value 'AXMenuButton:Highlight' 0)" "Green"
 ax key 6 cmd >/dev/null; settle
+# Mind Map sits in the row only with room for it: the CI screen is 1024 points wide.
+view_menu "Sidebar"; settle 1.5
 ax press "AXButton:Mind Map" 0 >/dev/null; settle 1.5
 check "Mind Map switches the page to a map"     "$(ax value 'AXButton:Back to the Page' 0)" "on"
 ax press "AXButton:Back to the Page" 0 >/dev/null; settle
 check "and back to the page"                    "$(ax value 'AXButton:Mind Map' 0)" "off"
+view_menu "Sidebar"; settle 1.5
 
 echo "Reminders"
 ax click "editor/AXStaticText:for the quarter" 0 >/dev/null; settle
@@ -328,8 +331,14 @@ check "Rename renames the page"                "$(count '=page:/Work/Notes v2')"
 ax rightclick "=page:/Work/Roadmap" 0 >/dev/null; settle 1
 ax press "AXMenuItem:Archive" 0 >/dev/null; settle
 check "Archive takes it out of its folder"     "$(count '=page:/Work/Roadmap')" 0
-ax click "AXButton:=Archive" 0 >/dev/null; settle
-check "and into the Archive"                   "$(atLeast "$(count 'Roadmap')" 1)" yes
+# Collapsed first, so the Archive section is on screen on a short display too.
+ax press "AXButton:=Collapse All" 0 >/dev/null; settle
+ax press "AXButton:=Archive" 0 >/dev/null; settle
+check "and into the Archive"                   "$(count '=archived:Roadmap')" 1
+ax rightclick "=archived:Roadmap" 0 >/dev/null; settle 1
+ax press "AXMenuItem:=Unarchive" 0 >/dev/null; settle
+ax press "=folder:/Work" 0 >/dev/null; settle
+check "Unarchive puts it back in its folder"    "$(count '=page:/Work/Roadmap')" 1
 ax rightclick "=folder:/Personal" 0 >/dev/null; settle 1.2
 check "a folder offers Tag Colour"             "$(atLeast "$(count 'AXMenuItem:Tag Colour')" 1)" yes
 ax key 53 >/dev/null; settle 0.5

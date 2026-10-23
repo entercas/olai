@@ -207,6 +207,9 @@ private struct TreeList: View {
             ForEach(index.rows(expanded: expansion.expanded)) { item in
                 row(item, index: index)
             }
+            if index.hasArchive {
+                archive(index)
+            }
             // The blank space under the tree: clicking it clears the selection, so the
             // next new page goes to the top level; dropping on it moves there.
             Color.clear
@@ -227,38 +230,51 @@ private struct TreeList: View {
                 .accessibilityHidden(true)
         }
 
-        if index.hasArchive {
-            Section {
-                if showArchive {
-                    ForEach(index.archivedFolders) { folder in
-                        ArchivedRow(title: folder.name, systemImage: "folder", actions: actions, item: .folder(folder))
+    }
+
+    /// Archived folders and pages, under a row at the foot of the tree that opens and
+    /// closes like a folder. It was a list section with its own header button, and
+    /// opening it showed the header and nothing under it.
+    @ViewBuilder
+    private func archive(_ index: TreeIndex) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: "chevron.right")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(.secondary)
+                .rotationEffect(.degrees(showArchive ? 90 : 0))
+                .frame(width: 10)
+            Image(systemName: "archivebox")
+                .foregroundStyle(.secondary)
+                .frame(width: 18)
+            Text("Archive")
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 4)
+        .frame(maxWidth: .infinity, minHeight: 22, alignment: .leading)
+        .contentShape(.rect)
+        .onTapGesture { showArchive.toggle() }
+        .accessibilityElement(children: .ignore)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { showArchive.toggle() }
+        .accessibilityLabel("Archive")
+        .accessibilityValue(showArchive ? "expanded" : "collapsed")
+
+        if showArchive {
+            ForEach(index.archivedFolders) { folder in
+                ArchivedRow.label(title: folder.name, systemImage: "folder")
+                    .contextMenu { ArchivedRow.menu(.folder(folder), actions: actions) }
+                    .accessibilityIdentifier("archived:\(folder.name)")
+            }
+            ForEach(index.archivedPages) { page in
+                ArchivedRow.label(title: page.title, systemImage: "doc.text")
+                    .onTapGesture {
+                        selection = .page(page.id)
+                        actions.open(page.id, false)
                     }
-                    ForEach(index.archivedPages) { page in
-                        Button {
-                            selection = .page(page.id)
-                            actions.open(page.id, false)
-                        } label: {
-                            ArchivedRow.label(title: page.title, systemImage: "doc.text")
-                        }
-                        .buttonStyle(.plain)
-                        .contextMenu { ArchivedRow.menu(.page(page), actions: actions) }
-                    }
-                }
-            } header: {
-                Button {
-                    showArchive.toggle()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.right")
-                            .font(.caption2.weight(.bold))
-                            .rotationEffect(.degrees(showArchive ? 90 : 0))
-                        Text("Archive")
-                    }
-                    .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Archive")
-                .accessibilityValue(showArchive ? "expanded" : "collapsed")
+                    .contextMenu { ArchivedRow.menu(.page(page), actions: actions) }
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityIdentifier("archived:\(page.title)")
             }
         }
     }
@@ -273,6 +289,10 @@ private struct TreeList: View {
             actions: actions,
             onClick: { newTab in click(item, newTab: newTab) }
         )
+        // Only the rows whose highlight changed are redrawn when the selection moves.
+        // Every row used to be, since each gets a fresh click closure; on macOS 15 that
+        // was half a second of a tab switch with a few dozen rows showing.
+        .equatable()
     }
 
     private func isSelected(_ item: TreeRow) -> Bool {
@@ -397,6 +417,22 @@ private extension Page {
 }
 
 // MARK: - Rows
+
+extension TreeRowView: Equatable {
+    /// What the parent decides. A row's own title, pin and colour are read from the
+    /// model in `body`, and observation redraws it when they change.
+    nonisolated static func == (lhs: TreeRowView, rhs: TreeRowView) -> Bool {
+        MainActor.assumeIsolated {
+            lhs.item.id == rhs.item.id
+                && lhs.item.depth == rhs.item.depth
+                && lhs.item.path == rhs.item.path
+                && lhs.isSelected == rhs.isSelected
+                && lhs.isExpanded == rhs.isExpanded
+                && lhs.hasChildren == rhs.hasChildren
+                && lhs.allFolders.count == rhs.allFolders.count
+        }
+    }
+}
 
 private struct TreeRowView: View {
     let item: TreeRow
@@ -612,23 +648,15 @@ private struct FolderDrop: ViewModifier {
     }
 }
 
-/// A folder or page in the Archive section.
-private struct ArchivedRow: View {
-    let title: String
-    let systemImage: String
-    let actions: TreeActions
-    let item: TreeItem
-
-    var body: some View {
-        Self.label(title: title, systemImage: systemImage)
-            .contextMenu { Self.menu(item, actions: actions) }
-    }
-
+/// How a folder or page under Archive is drawn, and its menu.
+@MainActor
+private enum ArchivedRow {
     static func label(title: String, systemImage: String) -> some View {
         Label(title.isEmpty ? "Untitled" : title, systemImage: systemImage)
             .lineLimit(1)
             .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.leading, 33)
+            .frame(maxWidth: .infinity, minHeight: 22, alignment: .leading)
             .contentShape(.rect)
     }
 

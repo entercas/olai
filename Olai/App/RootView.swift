@@ -49,7 +49,7 @@ struct RootView: View {
             )
             .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 400)
         } detail: {
-            EditorPane(tabs: tabs)
+            EditorPane(tabs: tabs, selection: $selection)
                 // The binder tabs stand in for the sidebar while it is hidden.
                 .safeAreaInset(edge: .leading, spacing: 0) {
                     if !layout.showFolders { rail }
@@ -61,10 +61,6 @@ struct RootView: View {
         #endif
         .navigationTitle("Olai")
         .focusedSceneValue(\.treeActions, actions)
-        // The sidebar highlights the page in front, whichever way it came to the front.
-        .onChange(of: tabs.active, initial: true) { _, new in
-            if let new, selection != .page(new) { selection = .page(new) }
-        }
         // A page that is deleted must not leave a tab pointing at nothing.
         .onChange(of: pageIDs) { _, ids in
             tabs.keepOnly(ids)
